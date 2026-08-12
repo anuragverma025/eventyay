@@ -22,6 +22,11 @@ class GlobalSettingsForm(SettingsForm):
         global_settings = self.obj.settings
         if global_settings.get('billing_validation') is None:
             global_settings.set('billing_validation', True)
+        if global_settings.get('platform_footer_links_enabled') is None:
+            global_settings.set('platform_footer_links_enabled', True)
+        for key in ['events', 'terms', 'privacy', 'pricing', 'docs', 'support']:
+            if global_settings.get(f'platform_footer_enable_{key}') is None:
+                global_settings.set(f'platform_footer_enable_{key}', True)
         if global_settings.get(EVENT_SERIES_CREATION_ENABLED) is None:
             global_settings.set(EVENT_SERIES_CREATION_ENABLED, True)
         if global_settings.get(MEETUP_CREATION_ENABLED) is None:
@@ -105,6 +110,118 @@ class GlobalSettingsForm(SettingsForm):
                         required=False,
                         label=_('Additional footer link'),
                         help_text=_('Will be included as the link in the additional footer text.'),
+                    ),
+                ),
+                (
+                    'platform_footer_links_enabled',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable platform footer links'),
+                        help_text=_(
+                            'Master switch to enable or disable standard platform footer links across pages.'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_events',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Events link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_events',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Events URL'),
+                        help_text=_(
+                            'URL for the "Events" link. Example: /upcoming'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_terms',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Terms link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_terms',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Terms of Service URL'),
+                        help_text=_(
+                            'URL for the "Terms" link. Example: /terms'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_privacy',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Privacy link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_privacy',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Privacy Policy URL'),
+                        help_text=_(
+                            'URL for the "Privacy" link. Example: /privacy'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_pricing',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Pricing link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_pricing',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Pricing URL'),
+                        help_text=_(
+                            'URL for the "Pricing" link. Example: /pricing'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_docs',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Documentation link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_docs',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Documentation URL'),
+                        help_text=_(
+                            'URL for the "Documentation" link. Example: https://docs.eventyay.com'
+                        ),
+                    ),
+                ),
+                (
+                    'platform_footer_enable_support',
+                    forms.BooleanField(
+                        required=False,
+                        label=_('Enable Support link'),
+                    ),
+                ),
+                (
+                    'platform_footer_url_support',
+                    forms.CharField(
+                        required=False,
+                        label=_('Footer link: Support URL'),
+                        help_text=_(
+                            'URL for the "Support" link. Example: /support'
+                        ),
                     ),
                 ),
                 (
@@ -563,6 +680,15 @@ class GlobalSettingsForm(SettingsForm):
                 'etherpad_base_url',
                 'etherpad_api_key',
                 'etherpad_pad_name_pattern',
+            ]),
+            ('footer', _('Footer'), [
+                'platform_footer_links_enabled',
+                'platform_footer_enable_events', 'platform_footer_url_events',
+                'platform_footer_enable_terms', 'platform_footer_url_terms',
+                'platform_footer_enable_privacy', 'platform_footer_url_privacy',
+                'platform_footer_enable_pricing', 'platform_footer_url_pricing',
+                'platform_footer_enable_docs', 'platform_footer_url_docs',
+                'platform_footer_enable_support', 'platform_footer_url_support',
             ]),
         ]
 

@@ -223,8 +223,11 @@
                 {% for footer in footer_links %}
                     · <a href="{% safelink footer.url %}" target="_blank" rel="noopener">{{ footer.label }}</a>
                 {% endfor %}
-                <ul class="list-inline text-center startpage-footer-links">
-                    {% if show_link_in_footer_for_start_page %}
+                {% for link in platform_footer_links %}
+                    · <a href="{% safelink link.url %}">{{ link.label }}</a>
+                {% endfor %}
+                {% if show_link_in_footer_for_start_page %}
+                    <ul class="list-inline text-center startpage-footer-links">
                         {% for page in show_link_in_footer_for_start_page %}
                             <li>
                                 <a href='{% url "page" slug=page.slug %}' title='{{ page.title|safe }}'>
@@ -232,8 +235,8 @@
                                 </a>
                             </li>
                         {% endfor %}
-                    {% endif %}
-                </ul>
+                    </ul>
+                {% endif %}
             </footer>
         </div>
         {% include "pretixpresale/includes/share_dialog.html" %}

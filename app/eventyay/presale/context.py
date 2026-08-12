@@ -192,6 +192,24 @@ def _default_context(request):
         'leaflet_tiles_attribution': global_settings.get('leaflet_tiles_attribution'),
         'reservation_time': global_settings.get('reservation_time', default=30) or 30,
     }
+
+    if global_settings.get('platform_footer_links_enabled', as_type=bool, default=True):
+        from django.utils.translation import gettext_lazy as _
+        _all_links = [
+            ('events', _('Events'), global_settings.get('platform_footer_url_events')),
+            ('terms', _('Terms'), global_settings.get('platform_footer_url_terms')),
+            ('privacy', _('Privacy'), global_settings.get('platform_footer_url_privacy')),
+            ('pricing', _('Pricing'), global_settings.get('platform_footer_url_pricing')),
+            ('docs', _('Documentation'), global_settings.get('platform_footer_url_docs')),
+            ('support', _('Support'), global_settings.get('platform_footer_url_support')),
+        ]
+        ctx['platform_footer_links'] = [
+            {'label': label, 'url': url}
+            for key, label, url in _all_links
+            if url and global_settings.get(f'platform_footer_enable_{key}', as_type=bool, default=True)
+        ]
+    else:
+        ctx['platform_footer_links'] = []
     ctx['django_settings'] = settings
 
     # Check to show organizer area (only for team members or admins)

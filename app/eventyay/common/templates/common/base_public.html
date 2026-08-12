@@ -287,6 +287,10 @@
                     ·
                     <a href="{% safelink footer.url %}" target="_blank" rel="noopener">{{ footer.label }}</a>
                 {% endfor %}
+                {% for link in platform_footer_links %}
+                    ·
+                    <a href="{% safelink link.url %}">{{ link.label }}</a>
+                {% endfor %}
             </footer>
         </div>
         {% include "common/includes/modals.html" %}

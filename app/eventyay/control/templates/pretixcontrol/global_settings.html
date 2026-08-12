@@ -6,6 +6,24 @@
 
 {% block custom_header %}
     <script type="text/javascript" src="{% static "move-email-elements/moveEmailElements.js" %}"></script>
+    <style>
+        .nav-tabs {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            border-bottom: 1px solid #ddd;
+        }
+        .nav-tabs > li {
+            float: none;
+            flex: 0 0 auto;
+        }
+        .nav-tabs > li > a {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+    </style>
 {% endblock %}
 
 {% block inner %}

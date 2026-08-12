@@ -61,6 +61,15 @@ settings_hierarkey.add_default('etherpad_base_url', '', str)
 settings_hierarkey.add_default('etherpad_api_key', '', str)
 settings_hierarkey.add_default('etherpad_pad_name_pattern', '{event}-{submission}-{token}', str)
 
+# Platform footer links
+settings_hierarkey.add_default('platform_footer_links_enabled', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_events', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_terms', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_privacy', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_pricing', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_docs', True, bool)
+settings_hierarkey.add_default('platform_footer_enable_support', True, bool)
+
 # Telemetry settings for anonymous usage data collection
 # These are used by GlobalSettingsObject via settings_hierarkey
 settings_hierarkey.add_default('telemetry_enabled', False, bool)
@@ -68,6 +77,8 @@ settings_hierarkey.add_default('telemetry_last_sent', None, dt.datetime)
 settings_hierarkey.add_default('telemetry_endpoint', '', str)
 settings_hierarkey.add_default('telemetry_api_key', '', str)
 settings_hierarkey.add_default('telemetry_contact_email', '', str)
+
+
 
 
 def i18n_uns(v):

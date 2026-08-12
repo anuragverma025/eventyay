@@ -142,6 +142,24 @@ def system_information(request):
                 )
         context['footer_links'] += _footer
 
+        global_settings = GlobalSettings().settings
+        if global_settings.get('platform_footer_links_enabled', as_type=bool, default=True):
+            _all_links = [
+                ('events', _('Events'), global_settings.get('platform_footer_url_events')),
+                ('terms', _('Terms'), global_settings.get('platform_footer_url_terms')),
+                ('privacy', _('Privacy'), global_settings.get('platform_footer_url_privacy')),
+                ('pricing', _('Pricing'), global_settings.get('platform_footer_url_pricing')),
+                ('docs', _('Documentation'), global_settings.get('platform_footer_url_docs')),
+                ('support', _('Support'), global_settings.get('platform_footer_url_support')),
+            ]
+            context['platform_footer_links'] = [
+                {'label': label, 'url': url}
+                for key, label, url in _all_links
+                if url and global_settings.get(f'platform_footer_enable_{key}', as_type=bool, default=True)
+            ]
+        else:
+            context['platform_footer_links'] = []
+
         if event and get_scope():
             for _receiver, response in html_head.send(event, request=request):
                 _head.append(response)

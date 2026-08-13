@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.utils import translation
 from django.utils.translation import get_language_info
+from django.utils.translation import gettext_lazy as _
 from django_scopes import get_scope
 from i18nfield.strings import LazyI18nString
 
@@ -199,7 +200,6 @@ def _default_context(request):
     }
 
     if global_settings.get('platform_footer_links_enabled', as_type=bool, default=True):
-        from django.utils.translation import gettext_lazy as _
         _all_links = [
             ('events', _('Events'), global_settings.get('platform_footer_url_events')),
             ('terms', _('Terms'), global_settings.get('platform_footer_url_terms')),

@@ -1,3 +1,4 @@
+import urllib.parse
 from collections import OrderedDict
 from typing import List, Union
 
@@ -27,6 +28,17 @@ class GlobalSettingsForm(SettingsForm):
         for key in ['events', 'terms', 'privacy', 'pricing', 'docs', 'support']:
             if global_settings.get(f'platform_footer_enable_{key}') is None:
                 global_settings.set(f'platform_footer_enable_{key}', True)
+        _url_defaults = {
+            'events': '/upcoming',
+            'terms': '/terms',
+            'privacy': '/privacy',
+            'pricing': '/pricing',
+            'docs': 'https://docs.eventyay.com',
+            'support': '/support',
+        }
+        for key, default_url in _url_defaults.items():
+            if not global_settings.get(f'platform_footer_url_{key}'):
+                global_settings.set(f'platform_footer_url_{key}', default_url)
         if global_settings.get(EVENT_SERIES_CREATION_ENABLED) is None:
             global_settings.set(EVENT_SERIES_CREATION_ENABLED, True)
         if global_settings.get(MEETUP_CREATION_ENABLED) is None:
@@ -700,6 +712,46 @@ class GlobalSettingsForm(SettingsForm):
             )
         return pattern
 
+    @staticmethod
+    def _validate_footer_url(value):
+        """Validate a footer URL; allow relative paths, http://, and https:// only."""
+        if not value:
+            return value
+        value = value.strip()
+        parsed = urllib.parse.urlparse(value)
+        scheme = parsed.scheme.lower()
+        # Relative URL: no scheme, starts with /
+        if not scheme:
+            if not value.startswith('/'):
+                raise forms.ValidationError(
+                    _('Relative URLs must start with /. For external links, use http:// or https://')
+                )
+            return value
+        # Absolute URL: only http and https are allowed
+        if scheme not in ('http', 'https'):
+            raise forms.ValidationError(
+                _('Only relative URLs (starting with /) and http:// or https:// URLs are allowed.')
+            )
+        return value
+
+    def clean_platform_footer_url_events(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_events', ''))
+
+    def clean_platform_footer_url_terms(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_terms', ''))
+
+    def clean_platform_footer_url_privacy(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_privacy', ''))
+
+    def clean_platform_footer_url_pricing(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_pricing', ''))
+
+    def clean_platform_footer_url_docs(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_docs', ''))
+
+    def clean_platform_footer_url_support(self):
+        return self._validate_footer_url(self.cleaned_data.get('platform_footer_url_support', ''))
+
     def clean(self):
         data = super().clean()
 
@@ -707,8 +759,6 @@ class GlobalSettingsForm(SettingsForm):
         if data.get('email_vendor') == 'sendgrid':
             if not data.get('send_grid_api_key'):
                 raise forms.ValidationError({'send_grid_api_key': _('This field is required when using SendGrid as email vendor.')})
-
-
 
         return data
 

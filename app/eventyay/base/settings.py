@@ -64,11 +64,17 @@ settings_hierarkey.add_default('etherpad_pad_name_pattern', '{event}-{submission
 # Platform footer links
 settings_hierarkey.add_default('platform_footer_links_enabled', True, bool)
 settings_hierarkey.add_default('platform_footer_enable_events', True, bool)
+settings_hierarkey.add_default('platform_footer_url_events', '/upcoming', str)
 settings_hierarkey.add_default('platform_footer_enable_terms', True, bool)
+settings_hierarkey.add_default('platform_footer_url_terms', '/terms', str)
 settings_hierarkey.add_default('platform_footer_enable_privacy', True, bool)
+settings_hierarkey.add_default('platform_footer_url_privacy', '/privacy', str)
 settings_hierarkey.add_default('platform_footer_enable_pricing', True, bool)
+settings_hierarkey.add_default('platform_footer_url_pricing', '/pricing', str)
 settings_hierarkey.add_default('platform_footer_enable_docs', True, bool)
+settings_hierarkey.add_default('platform_footer_url_docs', 'https://docs.eventyay.com', str)
 settings_hierarkey.add_default('platform_footer_enable_support', True, bool)
+settings_hierarkey.add_default('platform_footer_url_support', '/support', str)
 
 # Telemetry settings for anonymous usage data collection
 # These are used by GlobalSettingsObject via settings_hierarkey

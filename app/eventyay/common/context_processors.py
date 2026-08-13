@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from django_scopes import get_scope
 
 from eventyay.base.meetup import has_video_stream, is_meetup_event
-from eventyay.base.models.settings import GlobalSettings
+from eventyay.base.settings import GlobalSettingsObject
 from eventyay.cfp.signals import footer_link, html_head
 from eventyay.helpers.formats.variants import get_day_month_date_format
 from eventyay.helpers.i18n import get_javascript_format, get_moment_locale, is_rtl
@@ -142,7 +142,7 @@ def system_information(request):
                 )
         context['footer_links'] += _footer
 
-        global_settings = GlobalSettings().settings
+        global_settings = GlobalSettingsObject().settings
         if global_settings.get('platform_footer_links_enabled', as_type=bool, default=True):
             _all_links = [
                 ('events', _('Events'), global_settings.get('platform_footer_url_events')),
@@ -172,7 +172,7 @@ def system_information(request):
     context['warning_update_available'] = False
     context['base_path'] = settings.BASE_PATH
     if not request.user.is_anonymous and request.user.is_administrator and request.path.startswith('/orga'):
-        gs = GlobalSettings()
+        gs = GlobalSettingsObject()
         if gs.settings.update_check_result_warning:
             context['warning_update_available'] = True
     return context

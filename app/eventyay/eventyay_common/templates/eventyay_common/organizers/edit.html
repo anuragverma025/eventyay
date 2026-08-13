@@ -11,7 +11,7 @@
             <div class="mt-3">
                 <div class="clearfix">
                     <h2 class="pull-left" style="margin: 0;">{{ organizer.name }} {% translate "Teams" %}</h2>
-                    <button type="button" class="btn btn-primary pull-right" data-toggle="collapse" data-target="#create-team-form" aria-expanded="{% if team_create_form.errors %}true{% else %}false{% endif %}">
+                    <button type="button" class="btn btn-primary pull-right" data-toggle="collapse" data-target="#create-team-form" aria-controls="create-team-form" aria-expanded="{{ team_create_form.errors|yesno:'true,false' }}">
                         <i class="fa fa-plus"></i> {% translate "Create a team" %}
                     </button>
                 </div>

@@ -85,8 +85,6 @@ settings_hierarkey.add_default('telemetry_api_key', '', str)
 settings_hierarkey.add_default('telemetry_contact_email', '', str)
 
 
-
-
 def i18n_uns(v):
     try:
         return LazyI18nString(json.loads(v))

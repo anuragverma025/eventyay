@@ -760,6 +760,8 @@ class GlobalSettingsForm(SettingsForm):
             if not data.get('send_grid_api_key'):
                 raise forms.ValidationError({'send_grid_api_key': _('This field is required when using SendGrid as email vendor.')})
 
+
+
         return data
 
 

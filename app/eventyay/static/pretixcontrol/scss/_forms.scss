@@ -104,7 +104,22 @@ div[data-formset-body], div[data-formset-form], div[data-nested-formset-form], d
 }
 
 .nav-tabs {
-  border-bottom: 0px solid #ddd;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  border-bottom: 1px solid #ddd;
+
+  > li {
+    float: none;
+    flex: 0 0 auto;
+
+    > a {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  }
 }
 
 .tab-content {

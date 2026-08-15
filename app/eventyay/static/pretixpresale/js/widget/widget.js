@@ -3,12 +3,14 @@
 /* This is embedded in an isolation wrapper that exposes siteglobals as the global
    scope. */
 
-window.PretixWidget = {
+window.EventyayWidget = {
     'build_widgets': true,
     'widget_data': {
         'referer': location.href
     }
 };
+// Backward compatibility alias for existing embeds on customer sites
+window.PretixWidget = window.EventyayWidget;
 
 var Vue = module.exports;
 Vue.component('resize-observer', VueResize.ResizeObserver)
@@ -1321,8 +1323,8 @@ var shared_root_methods = {
     },
     trigger_load_callback: function () {
         this.$nextTick(function () {
-            for (var i = 0; i < window.PretixWidget._loaded.length; i++) {
-                window.PretixWidget._loaded[i]()
+            for (var i = 0; i < window.EventyayWidget._loaded.length; i++) {
+                window.EventyayWidget._loaded[i]()
             }
         });
     },
@@ -1591,7 +1593,7 @@ var create_widget = function (element) {
     var skip_ssl = element.attributes["skip-ssl-check"] ? true : false;
     var disable_iframe = element.attributes["disable-iframe"] ? true : false;
     var disable_vouchers = element.attributes["disable-vouchers"] ? true : false;
-    var widget_data = JSON.parse(JSON.stringify(window.PretixWidget.widget_data));
+    var widget_data = JSON.parse(JSON.stringify(window.EventyayWidget.widget_data));
     var filter = element.attributes.filter ? element.attributes.filter.value : null;
     var items = element.attributes.items ? element.attributes.items.value : null;
     var categories = element.attributes.categories ? element.attributes.categories.value : null;
@@ -1671,7 +1673,7 @@ var create_button = function (element) {
     var skip_ssl = element.attributes["skip-ssl-check"] ? true : false;
     var disable_iframe = element.attributes["disable-iframe"] ? true : false;
     var button_text = element.innerHTML;
-    var widget_data = JSON.parse(JSON.stringify(window.PretixWidget.widget_data));
+    var widget_data = JSON.parse(JSON.stringify(window.EventyayWidget.widget_data));
     for (var i = 0; i < element.attributes.length; i++) {
         var attrib = element.attributes[i];
         if (attrib.name.match(/^data-.*$/)) {
@@ -1723,11 +1725,11 @@ var create_button = function (element) {
 /* Find all widgets on the page and render them */
 widgetlist = [];
 buttonlist = [];
-window.PretixWidget._loaded = [];
-window.PretixWidget.addLoadListener = function (f) {
-    window.PretixWidget._loaded.push(f);
+window.EventyayWidget._loaded = [];
+window.EventyayWidget.addLoadListener = function (f) {
+    window.EventyayWidget._loaded.push(f);
 }
-window.PretixWidget.buildWidgets = function () {
+window.EventyayWidget.buildWidgets = function () {
     document.createElement("pretix-widget");
     document.createElement("pretix-button");
     docReady(function () {
@@ -1747,12 +1749,12 @@ window.PretixWidget.buildWidgets = function () {
     });
 };
 
-window.PretixWidget.open = function (target_url, voucher, subevent, items, widget_data, skip_ssl_check, disable_iframe) {
+window.EventyayWidget.open = function (target_url, voucher, subevent, items, widget_data, skip_ssl_check, disable_iframe) {
     if (!target_url.match(/\/$/)) {
         target_url += "/";
     }
 
-    var all_widget_data = JSON.parse(JSON.stringify(window.PretixWidget.widget_data));
+    var all_widget_data = JSON.parse(JSON.stringify(window.EventyayWidget.widget_data));
     if (widget_data) {
         Object.keys(widget_data).forEach(function(key) { all_widget_data[key] = widget_data[key]; });
     }
@@ -1795,11 +1797,14 @@ window.PretixWidget.open = function (target_url, voucher, subevent, items, widge
     })
 };
 
+if (typeof window.eventyayWidgetCallback !== "undefined") {
+    window.eventyayWidgetCallback();
+}
 if (typeof window.pretixWidgetCallback !== "undefined") {
     window.pretixWidgetCallback();
 }
-if (window.PretixWidget.build_widgets) {
-    window.PretixWidget.buildWidgets();
+if (window.EventyayWidget.build_widgets) {
+    window.EventyayWidget.buildWidgets();
 }
 
 /* Set a global variable for debugging. In DEBUG mode, siteglobals will be window, otherwise it will be something

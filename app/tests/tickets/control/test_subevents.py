@@ -291,7 +291,7 @@ class SubEventsTest(SoupTest):
         with scopes_disabled():
             assert ses[1].quotas.count() == 1
             assert list(ses[1].quotas.first().products.all()) == [self.ticket]
-            assert SubEventItem.objects.get(subevent=ses[0], product=self.ticket).price == 16
+            assert SubEventItem.objects.get(subevent=ses[1], product=self.ticket).price == 16
             assert ses[1].checkinlist_set.count() == 1
 
         assert ses[-1].date_from.isoformat() == '2027-04-03T11:29:31+00:00'

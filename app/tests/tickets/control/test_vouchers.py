@@ -41,14 +41,14 @@ class VoucherFormTest(SoupTestMixin, TransactionTestCase):
 
         self.quota_shirts = Quota.objects.create(event=self.event, name='Shirts', size=2)
         self.shirt = Item.objects.create(event=self.event, name='T-Shirt', default_price=12)
-        self.quota_shirts.items.add(self.shirt)
-        self.shirt_red = ItemVariation.objects.create(item=self.shirt, default_price=14, value='Red')
-        self.shirt_blue = ItemVariation.objects.create(item=self.shirt, value='Blue')
+        self.quota_shirts.products.add(self.shirt)
+        self.shirt_red = ItemVariation.objects.create(product=self.shirt, default_price=14, value='Red')
+        self.shirt_blue = ItemVariation.objects.create(product=self.shirt, value='Blue')
         self.quota_shirts.variations.add(self.shirt_red)
         self.quota_shirts.variations.add(self.shirt_blue)
         self.quota_tickets = Quota.objects.create(event=self.event, name='Tickets', size=5)
         self.ticket = Item.objects.create(event=self.event, name='Early-bird ticket', default_price=23)
-        self.quota_tickets.items.add(self.ticket)
+        self.quota_tickets.products.add(self.ticket)
 
     def _create_voucher(self, data, expected_failure=False):
         with scopes_disabled():
@@ -844,3 +844,19 @@ class VoucherFormTest(SoupTestMixin, TransactionTestCase):
 
         assert len(doc.select('.alert-warning ul li')) == 1  # Check that there's exactly 1 item in the warning list
         assert doc.text.count('Order DEDUP') == 1  # Check that the order is listed exactly once
+
+    def test_create_voucher_negative_value(self):
+        self._create_voucher({'value': '-10.00', 'price_mode': 'set'}, expected_failure=True)
+
+    def test_create_voucher_percentage_over_100(self):
+        self._create_voucher({'value': '150.00', 'price_mode': 'percent'}, expected_failure=True)
+
+    def test_create_voucher_percentage_negative(self):
+        self._create_voucher({'value': '-5.00', 'price_mode': 'percent'}, expected_failure=True)
+
+    def test_create_voucher_negative_budget(self):
+        self._create_voucher({'budget': '-50.00'}, expected_failure=True)
+
+    def test_create_voucher_valid_values(self):
+        self._create_voucher({'value': '50.00', 'price_mode': 'percent', 'budget': '100.00'}, expected_failure=False)
+

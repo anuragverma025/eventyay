@@ -2,7 +2,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinLengthValidator
+from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
@@ -120,6 +120,7 @@ class Voucher(LoggedModel):
         max_digits=10,
         null=True,
         blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
     valid_until = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name=_('Valid until'))
     block_quota = models.BooleanField(
@@ -155,6 +156,7 @@ class Voucher(LoggedModel):
         max_digits=10,
         null=True,
         blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
     product = models.ForeignKey(
         Product,
@@ -239,9 +241,28 @@ class Voucher(LoggedModel):
             self.variation,
             seats_given=bool(self.seat),
         )
-        if self.price_mode == 'percent' and self.value is not None:
-            if self.value < 0 or self.value > 100:
-                raise ValidationError({'value': _('Percentage values must be between 0 and 100.')})
+        Voucher.clean_value_and_budget(
+            {
+                'value': self.value,
+                'price_mode': self.price_mode,
+                'budget': self.budget,
+            }
+        )
+
+    @staticmethod
+    def clean_value_and_budget(data):
+        value = data.get('value')
+        price_mode = data.get('price_mode')
+        budget = data.get('budget')
+
+        if value is not None:
+            if value < Decimal('0.00'):
+                raise ValidationError({'value': _('Voucher value cannot be negative.')})
+            if (price_mode == 'percent' or price_mode == PriceModeChoices.PERCENT) and value > Decimal('100.00'):
+                raise ValidationError({'value': _('Voucher discount percentage cannot exceed 100%.')})
+
+        if budget is not None and budget < Decimal('0.00'):
+            raise ValidationError({'budget': _('Voucher budget cannot be negative.')})
 
     @staticmethod
     def clean_product_properties(data, event, quota, product, variation, block_quota=False, seats_given=False):

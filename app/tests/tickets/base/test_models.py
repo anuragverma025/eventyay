@@ -1042,6 +1042,29 @@ class VoucherTestCase(BaseQuotaTestCase):
             v.clean()
 
     @classscope(attr='o')
+    def test_voucher_full_clean_negative_value(self):
+        v = Voucher(event=self.event, price_mode='set', value=Decimal('-10.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    @classscope(attr='o')
+    def test_voucher_full_clean_percent_over_100(self):
+        v = Voucher(event=self.event, price_mode='percent', value=Decimal('150.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    @classscope(attr='o')
+    def test_voucher_full_clean_negative_budget(self):
+        v = Voucher(event=self.event, budget=Decimal('-50.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    @classscope(attr='o')
+    def test_voucher_full_clean_valid(self):
+        v = Voucher(event=self.event, price_mode='percent', value=Decimal('50.00'), budget=Decimal('100.00'))
+        v.full_clean()
+
+    @classscope(attr='o')
     def test_calculate_price_none(self):
         v = Voucher.objects.create(event=self.event, price_mode='none', value=Decimal('10.00'))
         assert v.calculate_price(Decimal('23.42')) == Decimal('23.42')

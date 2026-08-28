@@ -1233,3 +1233,38 @@ def test_set_seat_subevent_invalid(token_client, organizer, event, seatingplan, 
         },
         expected_failure=True,
     )
+
+
+@pytest.mark.django_db
+def test_create_voucher_negative_value(token_client, organizer, event, item):
+    resp = token_client.post(
+        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        {
+            'code': 'VOUCHERNEG',
+            'max_usages': 1,
+            'price_mode': 'set',
+            'value': '-10.00',
+            'item': item.pk,
+        },
+        format='json',
+    )
+    assert resp.status_code == 400
+    assert 'value' in resp.data
+
+
+@pytest.mark.django_db
+def test_create_voucher_percentage_over_100(token_client, organizer, event, item):
+    resp = token_client.post(
+        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        {
+            'code': 'VOUCHER150',
+            'max_usages': 1,
+            'price_mode': 'percent',
+            'value': '150.00',
+            'item': item.pk,
+        },
+        format='json',
+    )
+    assert resp.status_code == 400
+    assert 'value' in resp.data
+

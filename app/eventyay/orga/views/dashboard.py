@@ -196,10 +196,13 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         # 3. Unscheduled sessions
         unscheduled_count = 0
         if event.wip_schedule:
-            unscheduled_count = event.wip_schedule.talks.filter(
-                submission__state__in=SubmissionStates.accepted_states,
-                start__isnull=True,
-            ).count()
+            unscheduled_count = (
+                event.wip_schedule.talks.filter(
+                    submission__state__in=SubmissionStates.accepted_states,
+                )
+                .filter(Q(start__isnull=True) | Q(room__isnull=True) | Q(room__is_unscheduled=True))
+                .count()
+            )
         if unscheduled_count > 0:
             tiles.append({
                 'title': _('Unscheduled sessions'),

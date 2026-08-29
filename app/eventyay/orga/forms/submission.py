@@ -11,14 +11,14 @@ from eventyay.base.models.resource import get_slide_resources
 from eventyay.base.models.room import rooms_for_talk_assignment
 from eventyay.base.services.etherpad import validate_etherpad_url
 from eventyay.base.settings import GlobalSettingsObject
-from eventyay.common.forms.fields import ImageField
+from eventyay.common.forms.fields import ImageField, RichTextField
 from eventyay.common.forms.mixins import ReadOnlyFlag, RequestRequire
 from eventyay.common.forms.renderers import InlineFormLabelRenderer, InlineFormRenderer
 from eventyay.common.forms.widgets import (
     EnhancedSelect,
     EnhancedSelectMultiple,
     HtmlDateTimeInput,
-    MarkdownWidget,
+    RichTextWidget,
     TextInputWithAddon,
 )
 from eventyay.common.text.phrases import phrases
@@ -224,9 +224,9 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
             'tags': EnhancedSelectMultiple(color_field='color'),
             'track': EnhancedSelect(color_field='color'),
             'submission_type': EnhancedSelect,
-            'abstract': MarkdownWidget,
-            'description': MarkdownWidget,
-            'notes': MarkdownWidget,
+            'abstract': RichTextWidget,
+            'description': RichTextWidget,
+            'notes': RichTextWidget,
             'duration': TextInputWithAddon(addon_after=_('minutes')),
         }
         field_classes = {
@@ -234,6 +234,13 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
             'tags': SafeModelMultipleChoiceField,
             'track': SafeModelChoiceField,
             'image': ImageField,
+            'abstract': RichTextField,
+            'description': RichTextField,
+            'notes': RichTextField,
+        }
+        help_texts = {
+            'abstract': '',
+            'description': '',
         }
         request_require = {
             'title',

@@ -1,6 +1,8 @@
 import pytest
 from django_scopes import scope
 
+from eventyay.common.forms.fields import RichTextField
+from eventyay.common.forms.widgets import RichTextWidget
 from eventyay.eventyay_common.forms.event import EventCommonSettingsForm
 from eventyay.orga.forms import SubmissionForm
 from eventyay.orga.forms.event import ReviewScoreCategoryForm
@@ -18,6 +20,43 @@ def test_submissionform_content_locale_choices(event):
             ("de", "Deutsch"),
             ("fr", "Français"),
         ]
+
+
+@pytest.mark.django_db
+def test_submissionform_richtext_fields_and_widgets(event):
+    with scope(event=event):
+        form = SubmissionForm(event)
+        for field_name in ('abstract', 'description', 'notes'):
+            assert isinstance(form.fields[field_name], RichTextField)
+            assert isinstance(form.fields[field_name].widget, RichTextWidget)
+        assert form.fields['abstract'].help_text == ''
+        assert form.fields['description'].help_text == ''
+
+
+@pytest.mark.django_db
+def test_submissionform_sanitizes_richtext_fields(event):
+    with scope(event=event):
+        submission_type = event.submission_types.first()
+        data = {
+            'title': 'Test Proposal',
+            'submission_type': submission_type.pk,
+            'state': 'submitted',
+            'abstract': '<p>Valid abstract</p><script>alert("xss")</script>',
+            'description': '<p>Valid description <a href="javascript:alert(1)">link</a></p>',
+            'notes': '<p>Notes with <span onclick="evil()">click</span></p>',
+            'content_locale': 'en',
+            'duration': '',
+            'slot_count': 1,
+        }
+        form = SubmissionForm(event, data=data)
+        assert form.is_valid(), form.errors
+        cleaned = form.cleaned_data
+        assert '<script>' not in cleaned['abstract']
+        assert 'alert("xss")' not in cleaned['abstract']
+        assert '<p>Valid abstract</p>' in cleaned['abstract']
+        assert 'javascript:' not in cleaned['description']
+        assert 'onclick' not in cleaned['notes']
+
 
 
 def test_event_common_settings_form_has_separate_header_color_controls():

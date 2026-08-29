@@ -519,6 +519,70 @@ def test_orga_can_edit_submission(orga_client, event, accepted_submission):
 
 
 @pytest.mark.django_db
+def test_orga_can_create_submission_with_richtext(orga_client, event):
+    with scope(event=event):
+        type_pk = event.submission_types.first().pk
+
+    response = orga_client.post(
+        event.orga_urls.new_submission,
+        data={
+            "title": "Rich Text Submission",
+            "submission_type": type_pk,
+            "state": "submitted",
+            "abstract": "<p>This is a <strong>rich text</strong> abstract with a <a href=\"https://example.com\">link</a>.</p>",
+            "description": "<p>Detailed description with a list:</p><ul><li>First point</li><li>Second point</li></ul>",
+            "notes": "<p>Internal notes for the organizers.</p>",
+            "content_locale": "en",
+            "duration": "",
+            "slot_count": 1,
+            "speaker-email": "speaker@example.com",
+            "speaker-name": "Speaker Name",
+            "speaker-locale": "en",
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        sub = event.submissions.filter(title="Rich Text Submission").first()
+        assert sub is not None
+        assert "<strong>rich text</strong>" in sub.abstract
+        assert "<ul><li>First point</li><li>Second point</li></ul>" in sub.description
+        assert "<p>Internal notes for the organizers.</p>" in sub.notes
+
+
+@pytest.mark.django_db
+def test_orga_can_edit_submission_with_richtext(orga_client, event, submission):
+    with scope(event=event):
+        type_pk = submission.submission_type.pk
+
+    response = orga_client.post(
+        submission.orga_urls.base,
+        data={
+            "title": submission.title,
+            "submission_type": type_pk,
+            "abstract": "<p>Updated <em>abstract</em></p><script>alert(1)</script>",
+            "description": "<p>Updated description</p>",
+            "notes": "<p>Updated notes</p>",
+            "content_locale": "en",
+            "duration": "",
+            "slot_count": 1,
+            "speaker": submission.speakers.first().email if submission.speakers.exists() else "test@example.com",
+            "speaker_name": "Speaker Name",
+            "resource-TOTAL_FORMS": 0,
+            "resource-INITIAL_FORMS": 0,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        submission.refresh_from_db()
+        assert "<em>abstract</em>" in submission.abstract
+        assert "<script>" not in submission.abstract
+        assert "alert(1)" not in submission.abstract
+        assert "<p>Updated description</p>" in submission.description
+
+
+@pytest.mark.django_db
 def test_orga_can_remove_and_add_resources(
     orga_client, event, submission, resource, other_resource
 ):

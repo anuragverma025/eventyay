@@ -142,3 +142,37 @@ def test_event_dashboard_different_times(event, orga_client, start_diff, end_dif
         event.save()
     response = orga_client.get(event.orga_urls.base)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_event_dashboard_sections_context(event, orga_client, submission, accepted_submission):
+    with scope(event=event):
+        event.cfp.deadline = now()
+        event.save()
+    response = orga_client.get(event.orga_urls.base)
+    assert response.status_code == 200
+    assert "info_tiles" in response.context
+    assert "action_required_tiles" in response.context
+    assert "kpi_tiles" in response.context
+
+    # Verify action_required_tiles only includes items with count > 0
+    action_tiles = response.context["action_required_tiles"]
+    assert isinstance(action_tiles, list)
+    for tile in action_tiles:
+        assert tile["count"] > 0
+        assert "title" in tile
+        assert "action_url" in tile
+        assert "action_label" in tile
+
+    # Verify kpi_tiles structure and URLs
+    kpi_tiles = response.context["kpi_tiles"]
+    assert isinstance(kpi_tiles, list)
+    assert len(kpi_tiles) >= 7
+    kpi_labels = [tile["label"] for tile in kpi_tiles]
+    assert any("Submitted proposals" in str(label) for label in kpi_labels)
+    assert any("Accepted proposals" in str(label) for label in kpi_labels)
+    assert any("Confirmed sessions" in str(label) for label in kpi_labels)
+    for tile in kpi_tiles:
+        assert "count" in tile
+        assert "url" in tile
+

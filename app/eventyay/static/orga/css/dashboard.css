@@ -253,3 +253,20 @@
 .dashboard-live {
   margin-top: 12px;
 }
+
+.dashboard-section-title {
+  font-size: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.dashboard-action-card > .dashboard-block {
+  text-align: left;
+  padding: 16px;
+}
+
+.dashboard-action-card .badge {
+  font-size: 1rem;
+}
+

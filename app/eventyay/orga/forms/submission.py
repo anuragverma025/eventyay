@@ -18,6 +18,7 @@ from eventyay.common.forms.widgets import (
     EnhancedSelect,
     EnhancedSelectMultiple,
     HtmlDateTimeInput,
+    MarkdownWidget,
     RichTextWidget,
     TextInputWithAddon,
 )

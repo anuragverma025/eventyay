@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0065_queuedmail_is_draft'),
+        ('base', '0067_user_profile_picture_user_profile_picture_thumbnail_and_more'),
     ]
 
     operations = [

@@ -19,8 +19,8 @@ from ..decimal import round_decimal
 from .base import LoggedModel
 from .choices import PriceModeChoices
 from .event import Event, SubEvent
-from .product import Product, ProductVariation, Quota
 from .orders import Order, OrderPosition
+from .product import Product, ProductVariation, Quota
 
 
 def _generate_random_code(prefix=None):
@@ -590,6 +590,7 @@ class InvoiceVoucher(LoggedModel):
         max_digits=10,
         null=True,
         blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
     valid_until = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name=_('Valid until'))
     price_mode = models.CharField(
@@ -604,6 +605,7 @@ class InvoiceVoucher(LoggedModel):
         max_digits=10,
         null=True,
         blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
 
     limit_events = models.ManyToManyField(
@@ -632,6 +634,16 @@ class InvoiceVoucher(LoggedModel):
 
     def __str__(self):
         return self.code
+
+    def clean(self):
+        super().clean()
+        Voucher.clean_value_and_budget(
+            {
+                'value': self.value,
+                'price_mode': self.price_mode,
+                'budget': self.budget,
+            }
+        )
 
     def is_active(self):
         if self.redeemed >= self.max_usages:

@@ -34,6 +34,7 @@ from eventyay.base.models import (
     Quota,
     SeatingPlan,
     User,
+    InvoiceVoucher,
     Voucher,
     WaitingListEntry,
 )
@@ -77,9 +78,9 @@ class BaseQuotaTestCase(TestCase):
         self.item1 = Item.objects.create(event=self.event, name='Ticket', default_price=23, admission=True)
         self.item2 = Item.objects.create(event=self.event, name='T-Shirt', default_price=23)
         self.item3 = Item.objects.create(event=self.event, name='Goodie', default_price=23)
-        self.var1 = ItemVariation.objects.create(item=self.item2, value='S')
-        self.var2 = ItemVariation.objects.create(item=self.item2, value='M')
-        self.var3 = ItemVariation.objects.create(item=self.item3, value='Fancy')
+        self.var1 = ItemVariation.objects.create(product=self.item2, value='S')
+        self.var2 = ItemVariation.objects.create(product=self.item2, value='M')
+        self.var3 = ItemVariation.objects.create(product=self.item3, value='Fancy')
 
 
 class QuotaTestCase(BaseQuotaTestCase):
@@ -1134,6 +1135,27 @@ class VoucherTestCase(BaseQuotaTestCase):
             price_before_voucher=Decimal('23.00'),
         )
         assert v.budget_used() == Decimal('6.00')
+
+
+class InvoiceVoucherTestCase(TestCase):
+    def test_invoice_voucher_full_clean_negative_value(self):
+        v = InvoiceVoucher(price_mode='set', value=Decimal('-10.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    def test_invoice_voucher_full_clean_percent_over_100(self):
+        v = InvoiceVoucher(price_mode='percent', value=Decimal('150.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    def test_invoice_voucher_full_clean_negative_budget(self):
+        v = InvoiceVoucher(budget=Decimal('-50.00'))
+        with self.assertRaises(ValidationError):
+            v.full_clean()
+
+    def test_invoice_voucher_full_clean_valid(self):
+        v = InvoiceVoucher(price_mode='percent', value=Decimal('50.00'), budget=Decimal('100.00'))
+        v.full_clean()
 
 
 class OrderTestCase(BaseQuotaTestCase):

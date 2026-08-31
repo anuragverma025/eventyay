@@ -3,9 +3,11 @@ import decimal
 import json
 
 from django.core import mail as djmail
-from django.test import TransactionTestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils.timezone import now
 from django_scopes import scopes_disabled
+
+from eventyay.control.forms.admin.vouchers import InvoiceVoucherForm
 
 from eventyay.base.models import (
     Event,
@@ -859,4 +861,33 @@ class VoucherFormTest(SoupTestMixin, TransactionTestCase):
 
     def test_create_voucher_valid_values(self):
         self._create_voucher({'value': '50.00', 'price_mode': 'percent', 'budget': '100.00'}, expected_failure=False)
+
+
+class InvoiceVoucherFormTest(TestCase):
+    def test_invoice_voucher_form_negative_value(self):
+        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'set', 'value': '-10.00'})
+        assert not f.is_valid()
+        assert 'value' in f.errors
+
+    def test_invoice_voucher_form_percent_over_100(self):
+        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'percent', 'value': '150.00'})
+        assert not f.is_valid()
+        assert 'value' in f.errors
+
+    def test_invoice_voucher_form_negative_budget(self):
+        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'none', 'budget': '-50.00'})
+        assert not f.is_valid()
+        assert 'budget' in f.errors
+
+    def test_invoice_voucher_form_valid(self):
+        f = InvoiceVoucherForm(
+            data={
+                'code': 'INV123',
+                'max_usages': 1,
+                'price_mode': 'percent',
+                'value': '50.00',
+                'budget': '100.00',
+            }
+        )
+        assert f.is_valid(), f.errors
 

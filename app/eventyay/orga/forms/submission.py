@@ -11,6 +11,7 @@ from eventyay.base.models.resource import get_slide_resources
 from eventyay.base.models.room import rooms_for_talk_assignment
 from eventyay.base.services.etherpad import validate_etherpad_url
 from eventyay.base.settings import GlobalSettingsObject
+from eventyay.base.templatetags.rich_text import convert_markdown_to_html
 from eventyay.common.forms.fields import ImageField, RichTextField
 from eventyay.common.forms.mixins import ReadOnlyFlag, RequestRequire
 from eventyay.common.forms.renderers import InlineFormLabelRenderer, InlineFormRenderer
@@ -110,6 +111,13 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
             )
         if 'abstract' in self.fields:
             self.fields['abstract'].widget.attrs['rows'] = 2
+        for field_name in ('abstract', 'description', 'notes'):
+            if field_name in self.fields:
+                val = self.initial.get(field_name)
+                if not val and self.instance and self.instance.pk:
+                    val = getattr(self.instance, field_name, '')
+                if val:
+                    self.initial[field_name] = convert_markdown_to_html(val)
         if 'slides' in self.fields:
             slides_resources = list(get_slide_resources(instance)) if instance and instance.pk else []
             self.initial['slides'] = slides_resources

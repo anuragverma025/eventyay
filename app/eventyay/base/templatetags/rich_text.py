@@ -160,13 +160,13 @@ EMAIL_ALLOWED_ATTRIBUTES = {
 EMAIL_ALLOWED_PROTOCOLS = ALLOWED_PROTOCOLS | {'data'}
 
 _TIPTAP_BLOCK_START_RE = re.compile(
-    r'^\s*<(p|ul|ol|blockquote)(\s|>)',
+    r'^\s*<(p|ul|ol|blockquote|h[1-6]|div|pre)(\s|>)',
     re.IGNORECASE | re.DOTALL,
 )
 
 
-def _is_tiptap_email_html(source: str) -> bool:
-    """Return True when *source* looks like HTML from the Tiptap email editor.
+def is_tiptap_html(source: str) -> bool:
+    """Return True when *source* looks like HTML from the Tiptap rich text / email editor.
 
     ``nh3.is_html()`` is too broad: legacy Markdown bodies may contain inline
     tags such as ``<br>`` or ``<b>`` and must still be compiled.  Tiptap
@@ -179,6 +179,21 @@ def _is_tiptap_email_html(source: str) -> bool:
     if 'data-variable=' in source:
         return True
     return bool(_TIPTAP_BLOCK_START_RE.match(source))
+
+
+_is_tiptap_email_html = is_tiptap_html
+
+
+def convert_markdown_to_html(source: str) -> str:
+    """Convert legacy Markdown to sanitized HTML if it is not already HTML."""
+    if not source:
+        return ''
+    source = str(source)
+    if is_tiptap_html(source):
+        return source
+    from eventyay.common.sanitizers import sanitize_rich_text
+
+    return sanitize_rich_text(compile_markdown(source))
 
 
 _PREVIEW_PLACEHOLDER_CONTEXT: tuple[str, ...] = (

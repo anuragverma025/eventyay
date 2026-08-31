@@ -58,6 +58,57 @@ def test_submissionform_sanitizes_richtext_fields(event):
         assert 'onclick' not in cleaned['notes']
 
 
+@pytest.mark.django_db
+def test_submissionform_converts_legacy_markdown_in_initial_data(event, submission):
+    with scope(event=event):
+        submission.abstract = '**Legacy bold** and *italic* with [a link](https://example.com)'
+        submission.description = '- First item\n- Second item'
+        submission.notes = 'Simple legacy notes paragraph'
+        submission.save()
+
+        form = SubmissionForm(event, instance=submission)
+        assert '<strong>Legacy bold</strong>' in form.initial['abstract']
+        assert '<em>italic</em>' in form.initial['abstract']
+        assert '<a href="https://example.com"' in form.initial['abstract']
+        assert '<ul>' in form.initial['description']
+        assert '<li>First item</li>' in form.initial['description']
+        assert '<p>Simple legacy notes paragraph</p>' in form.initial['notes']
+
+
+@pytest.mark.django_db
+def test_submissionform_preserves_existing_tiptap_html_in_initial_data(event, submission):
+    with scope(event=event):
+        html_abstract = '<p>Already <strong>HTML</strong> content with <a href="https://example.com">link</a></p>'
+        html_description = '<ul><li>Existing point</li></ul>'
+        html_notes = '<blockquote><p>Existing note</p></blockquote>'
+        submission.abstract = html_abstract
+        submission.description = html_description
+        submission.notes = html_notes
+        submission.save()
+
+        form = SubmissionForm(event, instance=submission)
+        assert form.initial['abstract'] == html_abstract
+        assert form.initial['description'] == html_description
+        assert form.initial['notes'] == html_notes
+
+
+@pytest.mark.django_db
+def test_anonymiseform_converts_legacy_markdown_in_initial_data(event, submission):
+    from eventyay.orga.forms import AnonymiseForm
+
+    with scope(event=event):
+        submission.abstract = '**Legacy bold**'
+        submission.description = '* Bullet'
+        submission.notes = 'Legacy notes'
+        submission.save()
+
+        form = AnonymiseForm(instance=submission)
+        assert '<strong>Legacy bold</strong>' in form.initial['abstract']
+        assert '<ul>' in form.initial['description']
+        assert '<li>Bullet</li>' in form.initial['description']
+        assert '<p>Legacy notes</p>' in form.initial['notes']
+
+
 
 def test_event_common_settings_form_has_separate_header_color_controls():
     assert 'header_background_color' in EventCommonSettingsForm.auto_fields

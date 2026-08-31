@@ -6,7 +6,9 @@ from eventyay.base.email import get_available_placeholders, get_email_context
 from eventyay.base.models import Event, Organizer
 from eventyay.base.templatetags.rich_text import (
     compile_email_body,
+    convert_markdown_to_html,
     expand_email_preview_placeholders,
+    is_tiptap_html,
     markdown_compile_email,
     render_markdown_abslinks,
     rich_text_snippet,
@@ -52,6 +54,37 @@ def test_compile_email_body_compiles_legacy_inline_html():
     result = compile_email_body('Hello <b>world</b>')
     assert '<p>' in result
     assert 'world' in result
+
+
+def test_is_tiptap_html():
+    assert not is_tiptap_html('')
+    assert not is_tiptap_html(None)
+    assert not is_tiptap_html('**Legacy bold**')
+    assert not is_tiptap_html('Plain text')
+    assert not is_tiptap_html('- item 1\n- item 2')
+    assert is_tiptap_html('<p>Hello</p>')
+    assert is_tiptap_html('<ul><li>item</li></ul>')
+    assert is_tiptap_html('<ol><li>item</li></ol>')
+    assert is_tiptap_html('<blockquote><p>Quote</p></blockquote>')
+    assert is_tiptap_html('<p><span data-variable="test">val</span></p>')
+
+
+def test_convert_markdown_to_html():
+    assert convert_markdown_to_html('') == ''
+    assert convert_markdown_to_html(None) == ''
+    assert convert_markdown_to_html('<p>Already <strong>HTML</strong></p>') == '<p>Already <strong>HTML</strong></p>'
+
+    converted_bold = convert_markdown_to_html('**bold** and *italic*')
+    assert '<p><strong>bold</strong> and <em>italic</em></p>' in converted_bold
+
+    converted_list = convert_markdown_to_html('- item 1\n- item 2')
+    assert '<ul>' in converted_list
+    assert '<li>item 1</li>' in converted_list
+    assert '<li>item 2</li>' in converted_list
+
+    converted_link = convert_markdown_to_html('[Link](https://example.com)')
+    assert '<a href="https://example.com"' in converted_link
+    assert 'rel="noopener noreferrer"' in converted_link
 
 
 @pytest.mark.django_db

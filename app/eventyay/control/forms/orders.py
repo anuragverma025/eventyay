@@ -127,6 +127,7 @@ class CancelForm(ForceQuotaConfirmationForm):
         required=False,
         max_digits=10,
         decimal_places=2,
+        min_value=Decimal('0.00'),
         localize=True,
         label=_('Keep a cancellation fee of'),
         help_text=_(
@@ -147,6 +148,7 @@ class CancelForm(ForceQuotaConfirmationForm):
                 Decimal('0.00'),
                 settings.CURRENCY_PLACES.get(self.instance.event.currency, 2),
             )
+            self.fields['cancellation_fee'].min_value = Decimal('0.00')
             self.fields['cancellation_fee'].max_value = prs
         else:
             del self.fields['cancellation_fee']
@@ -155,6 +157,8 @@ class CancelForm(ForceQuotaConfirmationForm):
 
     def clean_cancellation_fee(self):
         val = self.cleaned_data['cancellation_fee'] or Decimal('0.00')
+        if val < Decimal('0.00'):
+            raise ValidationError(_('The cancellation fee cannot be negative.'))
         if val > self.instance.payment_refund_sum:
             raise ValidationError(_('The cancellation fee cannot be higher than the payment credit of this order.'))
         return val
@@ -669,6 +673,7 @@ class EventCancelForm(forms.Form):
         label=_('Keep a fixed cancellation fee'),
         max_digits=10,
         decimal_places=2,
+        min_value=Decimal('0.00'),
         required=False,
     )
     keep_fee_per_ticket = forms.DecimalField(
@@ -676,12 +681,15 @@ class EventCancelForm(forms.Form):
         help_text=_('Free tickets and add-on products are not counted'),
         max_digits=10,
         decimal_places=2,
+        min_value=Decimal('0.00'),
         required=False,
     )
     keep_fee_percentage = forms.DecimalField(
         label=_('Keep a percentual cancellation fee'),
         max_digits=10,
         decimal_places=2,
+        min_value=Decimal('0.00'),
+        max_value=Decimal('100.00'),
         required=False,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )

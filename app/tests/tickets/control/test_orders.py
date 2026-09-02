@@ -932,6 +932,45 @@ def test_order_cancel_unpaid_no_fees_allowed(client, env):
 
 
 @pytest.mark.django_db
+def test_order_cancel_negative_fee(client, env):
+    with scopes_disabled():
+        o = Order.objects.get(id=env[2].id)
+        o.payments.create(state=OrderPayment.PAYMENT_STATE_CONFIRMED, amount=Decimal('14.00'))
+        o.status = Order.STATUS_PAID
+        o.save()
+    client.login(email='dummy@dummy.dummy', password='dummy')
+    client.get('/control/event/dummy/dummy/orders/FOO/transition?status=c')
+    client.post(
+        '/control/event/dummy/dummy/orders/FOO/transition',
+        {'status': 'c', 'cancellation_fee': '-5.00'},
+    )
+    with scopes_disabled():
+        o = Order.objects.get(id=env[2].id)
+        assert o.positions.exists()
+        assert not o.fees.filter(fee_type=OrderFee.FEE_TYPE_CANCELLATION).exists()
+    assert o.status == Order.STATUS_PAID
+
+
+@pytest.mark.django_db
+def test_event_cancel_form_negative_fees(env):
+    from eventyay.control.forms.orders import EventCancelForm
+
+    with scopes_disabled():
+        form = EventCancelForm(
+            data={
+                'keep_fee_fixed': '-5.00',
+                'keep_fee_per_ticket': '-2.00',
+                'keep_fee_percentage': '-10.00',
+            },
+            event=env[0],
+        )
+        assert not form.is_valid()
+        assert 'keep_fee_fixed' in form.errors
+        assert 'keep_fee_per_ticket' in form.errors
+        assert 'keep_fee_percentage' in form.errors
+
+
+@pytest.mark.django_db
 def test_order_invoice_create_forbidden(client, env):
     client.login(email='dummy@dummy.dummy', password='dummy')
     env[0].settings.set('invoice_generate', 'no')

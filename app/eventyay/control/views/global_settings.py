@@ -26,10 +26,10 @@ from eventyay.base.services.update_check import check_result_table, update_check
 from eventyay.base.settings import GlobalSettingsObject
 from eventyay.common.sanitizers import sanitize_rich_text
 from eventyay.control.forms.global_settings import (
+    GlobalBusinessSettingsForm,
     GlobalSettingsForm,
     SSOConfigForm,
     UpdateSettingsForm,
-    StartPageSettingsForm,
     MetaDataSettingsForm,
 )
 from eventyay.control.permissions import (
@@ -43,6 +43,14 @@ logger = logging.getLogger(__name__)
 class GlobalSettingsView(AdministratorPermissionRequiredMixin, FormView):
     template_name = 'pretixcontrol/global_settings.html'
     form_class = GlobalSettingsForm
+
+    def get(self, request, *args, **kwargs):
+        tab = request.GET.get('tab', '').lower()
+        if tab in ('organizer_billing', 'ticket_fee', 'billing_validation', 'vouchers', 'event_vouchers', 'business'):
+            tab_name = 'event_vouchers' if tab == 'vouchers' else tab
+            target_hash = f'#tab-{tab_name}' if tab_name in ('organizer_billing', 'ticket_fee', 'billing_validation', 'event_vouchers') else ''
+            return redirect(reverse('eventyay_admin:admin.global.business') + target_hash)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         from eventyay.base.gmail.models import GmailOAuthCredential
@@ -71,9 +79,14 @@ class GlobalSettingsView(AdministratorPermissionRequiredMixin, FormView):
         return reverse('eventyay_admin:admin.global.settings')
 
 
-class StartPageSettingsView(AdministratorPermissionRequiredMixin, FormView):
-    template_name = 'pretixcontrol/admin/startpage.html'
-    form_class = StartPageSettingsForm
+class GlobalBusinessSettingsView(AdministratorPermissionRequiredMixin, FormView):
+    template_name = 'pretixcontrol/admin/business_settings.html'
+    form_class = GlobalBusinessSettingsForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['currency'] = settings.DEFAULT_CURRENCY
+        return ctx
 
     def form_valid(self, form):
         form.save()
@@ -85,7 +98,8 @@ class StartPageSettingsView(AdministratorPermissionRequiredMixin, FormView):
         return super().form_invalid(form)
 
     def get_success_url(self):
-        return reverse('eventyay_admin:admin.startpage')
+        return reverse('eventyay_admin:admin.global.business')
+
 
 class MetaDataSettingsView(AdministratorPermissionRequiredMixin, FormView):
     template_name = 'pretixcontrol/admin/metadata.html'

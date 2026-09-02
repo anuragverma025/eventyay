@@ -4,7 +4,6 @@ from decimal import Decimal
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.template.defaultfilters import floatformat
 from django.urls import reverse
@@ -148,7 +147,6 @@ class CancelForm(ForceQuotaConfirmationForm):
                 Decimal('0.00'),
                 settings.CURRENCY_PLACES.get(self.instance.event.currency, 2),
             )
-            self.fields['cancellation_fee'].min_value = Decimal('0.00')
             self.fields['cancellation_fee'].max_value = prs
         else:
             del self.fields['cancellation_fee']
@@ -691,7 +689,6 @@ class EventCancelForm(forms.Form):
         min_value=Decimal('0.00'),
         max_value=Decimal('100.00'),
         required=False,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     keep_fees = forms.MultipleChoiceField(
         label=_('Keep fees'),

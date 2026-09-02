@@ -31,7 +31,7 @@ from eventyay.base.models import (
 )
 from eventyay.base.exporters.orderlist import OrderListExporter, OrderPositionListExporter
 from eventyay.base.payment import PaymentException
-from eventyay.control.forms.orders import ExporterForm
+from eventyay.control.forms.orders import EventCancelForm, ExporterForm
 from eventyay.base.services.invoices import (
     generate_cancellation,
     generate_invoice,
@@ -953,8 +953,6 @@ def test_order_cancel_negative_fee(client, env):
 
 @pytest.mark.django_db
 def test_event_cancel_form_negative_fees(env):
-    from eventyay.control.forms.orders import EventCancelForm
-
     with scopes_disabled():
         form = EventCancelForm(
             data={

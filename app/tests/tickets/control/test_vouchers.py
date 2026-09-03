@@ -865,17 +865,41 @@ class VoucherFormTest(SoupTestMixin, TransactionTestCase):
 
 class InvoiceVoucherFormTest(TestCase):
     def test_invoice_voucher_form_negative_value(self):
-        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'set', 'value': '-10.00'})
+        f = InvoiceVoucherForm(
+            data={
+                'code': 'INV123',
+                'status': 'draft',
+                'waiver_type': 'subtract',
+                'value': '-10.00',
+                'scope_type': 'platform_wide',
+            }
+        )
         assert not f.is_valid()
         assert 'value' in f.errors
 
     def test_invoice_voucher_form_percent_over_100(self):
-        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'percent', 'value': '150.00'})
+        f = InvoiceVoucherForm(
+            data={
+                'code': 'INV123',
+                'status': 'draft',
+                'waiver_type': 'percent',
+                'value': '150.00',
+                'scope_type': 'platform_wide',
+            }
+        )
         assert not f.is_valid()
         assert 'value' in f.errors
 
     def test_invoice_voucher_form_negative_budget(self):
-        f = InvoiceVoucherForm(data={'code': 'INV123', 'price_mode': 'none', 'budget': '-50.00'})
+        f = InvoiceVoucherForm(
+            data={
+                'code': 'INV123',
+                'status': 'draft',
+                'waiver_type': 'none',
+                'budget': '-50.00',
+                'scope_type': 'platform_wide',
+            }
+        )
         assert not f.is_valid()
         assert 'budget' in f.errors
 
@@ -883,10 +907,12 @@ class InvoiceVoucherFormTest(TestCase):
         f = InvoiceVoucherForm(
             data={
                 'code': 'INV123',
+                'status': 'draft',
                 'max_usages': 1,
-                'price_mode': 'percent',
+                'waiver_type': 'percent',
                 'value': '50.00',
                 'budget': '100.00',
+                'scope_type': 'platform_wide',
             }
         )
         assert f.is_valid(), f.errors

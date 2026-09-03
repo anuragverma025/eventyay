@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0067_user_profile_picture_user_profile_picture_thumbnail_and_more'),
+        ('base', '0068_invoicevoucher_status_comment_partial_usage'),
     ]
 
     operations = [
@@ -26,11 +26,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='invoicevoucher',
             name='budget',
-            field=models.DecimalField(blank=True, decimal_places=2, help_text='This is the maximum monetary amount that will be discounted using this voucher across all usages.', max_digits=10, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Maximum discount budget'),
+            field=models.DecimalField(blank=True, decimal_places=2, help_text='Maximum monetary amount that will be waived using this voucher across all usages. Leave empty for no budget limit.', max_digits=10, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Maximum fee waiver budget'),
         ),
         migrations.AlterField(
             model_name='invoicevoucher',
             name='value',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Voucher value'),
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Fee waiver value'),
         ),
     ]

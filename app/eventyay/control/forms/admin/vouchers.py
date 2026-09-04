@@ -153,7 +153,7 @@ class InvoiceVoucherForm(I18nModelForm):
         waiver_type = data.get('waiver_type', 'none')
         if waiver_type == 'percent_100':
             data['price_mode'] = 'percent'
-            data['value'] = Decimal('100.00')
+            data['value'] = 100
         elif waiver_type == 'percent':
             data['price_mode'] = 'percent'
             if not data.get('value'):

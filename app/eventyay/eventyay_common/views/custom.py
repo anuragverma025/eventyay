@@ -8,13 +8,14 @@ from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils.html import conditional_escape, format_html
-from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from eventyay.base.models.page import Page
 from eventyay.base.services.turnstile import (
     TURNSTILE_ERROR_MESSAGE,
     TURNSTILE_FAILED_MESSAGE,
+    TURNSTILE_MISCONFIGURED_MESSAGE,
+    get_turnstile_settings,
     is_turnstile_enabled_for_action,
     verify_turnstile_token,
 )
@@ -95,11 +96,6 @@ class SignupView(_SignupView):
             return self.form_invalid(form)
 
         if is_turnstile_enabled_for_action('registration', self.request):
-            from eventyay.base.services.turnstile import (
-                TURNSTILE_MISCONFIGURED_MESSAGE,
-                get_turnstile_settings,
-            )
-
             cfg = get_turnstile_settings()
             if not cfg['site_key'] or not cfg['secret_key']:
                 form.add_error(

@@ -13,6 +13,8 @@ from django.views import View
 from eventyay.base.services.turnstile import (
     TURNSTILE_ERROR_MESSAGE,
     TURNSTILE_FAILED_MESSAGE,
+    TURNSTILE_MISCONFIGURED_MESSAGE,
+    get_turnstile_settings,
     is_turnstile_enabled_for_action,
     verify_turnstile_token,
 )
@@ -117,11 +119,6 @@ class ContactOrganizerView(EventViewMixin, View):
             )
 
         if is_turnstile_enabled_for_action('contact', request):
-            from eventyay.base.services.turnstile import (
-                TURNSTILE_MISCONFIGURED_MESSAGE,
-                get_turnstile_settings,
-            )
-
             cfg = get_turnstile_settings()
             if not cfg['site_key'] or not cfg['secret_key']:
                 return JsonResponse(

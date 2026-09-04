@@ -62,9 +62,12 @@ def get_failed_login_count(request: HttpRequest | None) -> int:
     if not key:
         return 0
     try:
-        return int(cache.get(key, 0) or 0)
-    except Exception:
-        logger.exception('Failed to retrieve failed login counter from cache.')
+        val = cache.get(key, 0)
+        return int(val or 0)
+    except (ValueError, TypeError):
+        return 0
+    except (OSError, ConnectionError, TimeoutError) as exc:
+        logger.warning('Failed to retrieve failed login counter from cache: %s', exc)
         return 0
 
 
@@ -81,8 +84,8 @@ def record_failed_login_attempt(request: HttpRequest | None) -> int:
                 cache.set(key, 1, timeout=FAILED_LOGIN_CACHE_TIMEOUT)
                 return 1
         return 1
-    except Exception:
-        logger.exception('Failed to record failed login attempt in cache.')
+    except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
+        logger.warning('Failed to record failed login attempt in cache: %s', exc)
         return 0
 
 
@@ -93,8 +96,8 @@ def reset_failed_login_attempts(request: HttpRequest | None) -> None:
         return
     try:
         cache.delete(key)
-    except Exception:
-        logger.exception('Failed to delete failed login counter from cache.')
+    except (OSError, ConnectionError, TimeoutError) as exc:
+        logger.warning('Failed to delete failed login counter from cache: %s', exc)
 
 
 def is_turnstile_enabled_for_action(action: str, request: HttpRequest | None = None) -> bool:

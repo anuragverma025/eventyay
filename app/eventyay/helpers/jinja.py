@@ -3,8 +3,15 @@ from urllib.parse import urljoin
 from django.apps import apps
 from django.conf import settings
 from django.urls import reverse
+from django.utils.html import format_html
 from jinja2 import pass_context
 from jinja2.runtime import Context
+from markupsafe import Markup
+
+from eventyay.base.services.turnstile import (
+    get_turnstile_settings,
+    is_turnstile_enabled_for_action,
+)
 
 
 @pass_context
@@ -54,11 +61,6 @@ def static_url(path: str = '') -> str:
 
 @pass_context
 def turnstile_widget(context: Context, action: str = 'registration', theme: str = 'auto', size: str = 'normal'):
-    from django.utils.html import format_html
-    from markupsafe import Markup
-
-    from eventyay.base.services.turnstile import get_turnstile_settings, is_turnstile_enabled_for_action
-
     request = context.get('request')
     if not is_turnstile_enabled_for_action(action, request):
         return Markup('')
@@ -84,11 +86,7 @@ def turnstile_widget(context: Context, action: str = 'registration', theme: str 
 
 
 @pass_context
-def turnstile_script(context: Context, action: str = None):
-    from markupsafe import Markup
-
-    from eventyay.base.services.turnstile import get_turnstile_settings, is_turnstile_enabled_for_action
-
+def turnstile_script(context: Context, action: str | None = None):
     request = context.get('request')
     if action and not is_turnstile_enabled_for_action(action, request):
         return Markup('')
@@ -97,5 +95,11 @@ def turnstile_script(context: Context, action: str = None):
     if not cfg['enabled'] or not cfg['site_key']:
         return Markup('')
 
-    return Markup('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>')
+    return Markup(
+        format_html(
+            '<script src="{}" async defer></script>',
+            'https://challenges.cloudflare.com/turnstile/v0/api.js',
+        )
+    )
+
 

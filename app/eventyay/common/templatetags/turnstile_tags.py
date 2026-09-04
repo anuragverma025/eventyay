@@ -1,6 +1,5 @@
 from django import template
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 from eventyay.base.services.turnstile import (
     get_turnstile_settings,
@@ -55,8 +54,10 @@ def turnstile_script(context, action=None):
     if not cfg['enabled'] or not cfg['site_key']:
         return ''
 
-    html = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
-    return mark_safe(html)
+    return format_html(
+        '<script src="{}" async defer></script>',
+        'https://challenges.cloudflare.com/turnstile/v0/api.js',
+    )
 
 
 @register.simple_tag(takes_context=True)

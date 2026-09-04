@@ -10,6 +10,12 @@ from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views import View
 
+from eventyay.base.services.turnstile import (
+    TURNSTILE_ERROR_MESSAGE,
+    TURNSTILE_FAILED_MESSAGE,
+    is_turnstile_enabled_for_action,
+    verify_turnstile_token,
+)
 from eventyay.helpers.http import get_client_ip
 
 from . import EventViewMixin
@@ -61,32 +67,6 @@ class ContactOrganizerView(EventViewMixin, View):
                 status=400,
             )
 
-        from eventyay.base.services.turnstile import (
-            TURNSTILE_ERROR_MESSAGE,
-            TURNSTILE_FAILED_MESSAGE,
-            is_turnstile_enabled_for_action,
-            verify_turnstile_token,
-        )
-
-        if is_turnstile_enabled_for_action('contact', request):
-            token = request.POST.get('cf-turnstile-response')
-            if not token:
-                return JsonResponse(
-                    {'success': False, 'error': str(TURNSTILE_ERROR_MESSAGE)},
-                    status=400,
-                )
-            client_ip = get_client_ip(request)
-            valid, error_code = verify_turnstile_token(
-                token,
-                remote_ip=client_ip,
-                expected_action='contact',
-            )
-            if not valid:
-                return JsonResponse(
-                    {'success': False, 'error': str(TURNSTILE_FAILED_MESSAGE)},
-                    status=400,
-                )
-
         if not message:
             return JsonResponse(
                 {'success': False, 'error': _('Please enter a message.')},
@@ -135,6 +115,25 @@ class ContactOrganizerView(EventViewMixin, View):
                 {'success': False, 'error': _('No contact email configured for this event.')},
                 status=400,
             )
+
+        if is_turnstile_enabled_for_action('contact', request):
+            token = request.POST.get('cf-turnstile-response')
+            if not token:
+                return JsonResponse(
+                    {'success': False, 'error': str(TURNSTILE_ERROR_MESSAGE)},
+                    status=400,
+                )
+            client_ip = get_client_ip(request)
+            valid, error_code = verify_turnstile_token(
+                token,
+                remote_ip=client_ip,
+                expected_action='contact',
+            )
+            if not valid:
+                return JsonResponse(
+                    {'success': False, 'error': str(TURNSTILE_FAILED_MESSAGE)},
+                    status=400,
+                )
 
         subject = _('Message from attendee – {event}').format(
             event=str(request.event.name),

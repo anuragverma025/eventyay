@@ -417,9 +417,47 @@ class TestContactOrganizerTurnstile:
         user.is_authenticated = True
         user.email = 'sender@example.com'
         request.user = user
+        event = MagicMock()
+        event.show_contact_form.return_value = True
+        event.contact_form_recipient_email.return_value = 'organizer@example.com'
+        request.event = event
 
         view = ContactOrganizerView()
         response = view.post(request)
         assert response.status_code == 400
         assert json.loads(response.content)['success'] is False
+
+    def test_contact_form_rate_limited_does_not_call_turnstile_verifier(self):
+        from unittest.mock import MagicMock, patch
+
+        from eventyay.presale.views.contact import ContactOrganizerView
+
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', 'site-key')
+        gs.set('turnstile_secret_key', 'secret-key')
+        gs.set('turnstile_on_contact', True)
+
+        rf = RequestFactory()
+        request = rf.post('/event/test-event/contact_organizer/', {
+            'message': 'Hello organizer!',
+            'cf-turnstile-response': 'some-token',
+        })
+        user = MagicMock()
+        user.is_authenticated = True
+        user.email = 'sender@example.com'
+        request.user = user
+        event = MagicMock()
+        event.show_contact_form.return_value = True
+        event.contact_form_recipient_email.return_value = 'organizer@example.com'
+        request.event = event
+
+        view = ContactOrganizerView()
+        with patch.object(view, '_is_rate_limited', return_value=True), \
+             patch('eventyay.presale.views.contact.verify_turnstile_token') as mock_verify:
+            response = view.post(request)
+            assert response.status_code == 429
+            assert json.loads(response.content)['success'] is False
+            assert not mock_verify.called
+
 

@@ -103,7 +103,7 @@ def is_turnstile_enabled_for_action(action: str, request: HttpRequest | None = N
     Actions supported: 'registration', 'login', 'password_reset', 'organizer_create', 'contact'.
     """
     cfg = get_turnstile_settings()
-    if not cfg['enabled'] or not cfg['site_key'] or not cfg['secret_key']:
+    if not cfg['enabled']:
         return False
 
     if action == 'registration':
@@ -167,9 +167,15 @@ def verify_turnstile_token(
             res_body = response.read().decode('utf-8')
             res_data = json.loads(res_body)
 
+        if not isinstance(res_data, dict):
+            logger.warning('Cloudflare Turnstile returned non-dictionary response: %r', res_data)
+            return False, 'invalid-response'
+
         success = bool(res_data.get('success'))
         if not success:
             error_codes = res_data.get('error-codes', [])
+            if not isinstance(error_codes, list):
+                error_codes = []
             logger.warning(
                 'Cloudflare Turnstile token validation failed: error_codes=%s',
                 error_codes,
@@ -195,7 +201,7 @@ def verify_turnstile_token(
             return False, 'hostname-mismatch'
 
         return True, None
-    except (urllib.request.URLError, TimeoutError, json.JSONDecodeError, ValueError, OSError):
+    except (urllib.request.URLError, TimeoutError, json.JSONDecodeError, ValueError, OSError, AttributeError):
         logger.exception('Error during Cloudflare Turnstile token verification.')
         return False, 'network-error'
 
@@ -211,7 +217,7 @@ class TurnstileValidationMixin:
             return
 
         cfg = get_turnstile_settings()
-        if not cfg['secret_key']:
+        if not cfg['site_key'] or not cfg['secret_key']:
             raise forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured')
 
         token = None
@@ -230,4 +236,6 @@ class TurnstileValidationMixin:
             expected_action=self.turnstile_action,
         )
         if not valid:
+            if error_code in ('missing-secret', 'missing-keys'):
+                raise forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured')
             raise forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid')

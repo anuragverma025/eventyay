@@ -95,6 +95,19 @@ class SignupView(_SignupView):
             return self.form_invalid(form)
 
         if is_turnstile_enabled_for_action('registration', self.request):
+            from eventyay.base.services.turnstile import (
+                TURNSTILE_MISCONFIGURED_MESSAGE,
+                get_turnstile_settings,
+            )
+
+            cfg = get_turnstile_settings()
+            if not cfg['site_key'] or not cfg['secret_key']:
+                form.add_error(
+                    None,
+                    forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured'),
+                )
+                return self.form_invalid(form)
+
             token = self.request.POST.get('cf-turnstile-response')
             if not token:
                 form.add_error(None, forms.ValidationError(TURNSTILE_ERROR_MESSAGE, code='turnstile_missing'))
@@ -106,7 +119,13 @@ class SignupView(_SignupView):
                 expected_action='registration',
             )
             if not valid:
-                form.add_error(None, forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid'))
+                if error_code in ('missing-secret', 'missing-keys'):
+                    form.add_error(
+                        None,
+                        forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured'),
+                    )
+                else:
+                    form.add_error(None, forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid'))
                 return self.form_invalid(form)
 
         return super().form_valid(form)

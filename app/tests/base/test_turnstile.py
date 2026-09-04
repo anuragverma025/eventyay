@@ -8,6 +8,7 @@ from django.test import RequestFactory
 from eventyay.base.forms.auth import PasswordForgotForm, RegistrationForm
 from eventyay.base.services.turnstile import (
     TURNSTILE_ERROR_MESSAGE,
+    TURNSTILE_MISCONFIGURED_MESSAGE,
     get_failed_login_count,
     get_turnstile_settings,
     is_turnstile_enabled_for_action,
@@ -79,6 +80,17 @@ class TestTurnstileService:
         assert is_turnstile_enabled_for_action('registration', request) is True
         assert is_turnstile_enabled_for_action('login', request) is False
 
+    def test_is_turnstile_enabled_without_keys(self):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', '')
+        gs.set('turnstile_secret_key', '')
+        gs.set('turnstile_on_registration', True)
+
+        rf = RequestFactory()
+        request = rf.get('/signup')
+        assert is_turnstile_enabled_for_action('registration', request) is True
+
     def test_is_turnstile_enabled_for_login_always(self):
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
@@ -137,6 +149,22 @@ class TestTurnstileService:
         valid, error = verify_turnstile_token('')
         assert valid is False
         assert error == 'missing-input-response'
+
+    @patch('urllib.request.urlopen')
+    def test_verify_turnstile_token_non_dict_responses(self, mock_urlopen):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_secret_key', 'secret-key')
+
+        for invalid_payload in [None, [], 'some string', 123, True]:
+            mock_resp = MagicMock()
+            mock_resp.read.return_value = json.dumps(invalid_payload).encode('utf-8')
+            mock_resp.__enter__.return_value = mock_resp
+            mock_urlopen.return_value = mock_resp
+
+            valid, error = verify_turnstile_token('token', remote_ip='192.0.2.1')
+            assert valid is False
+            assert error == 'invalid-response'
 
     @patch('urllib.request.urlopen')
     def test_verify_turnstile_token_success(self, mock_urlopen):
@@ -262,6 +290,21 @@ class TestTurnstileForms:
         })
         assert not form.is_valid()
         assert str(TURNSTILE_ERROR_MESSAGE) in form.non_field_errors()
+
+    def test_registration_form_misconfigured_keys(self):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', '')
+        gs.set('turnstile_secret_key', '')
+        gs.set('turnstile_on_registration', True)
+
+        form = RegistrationForm(data={
+            'email': 'user@example.com',
+            'password': 'ValidPassword123!',
+            'password_repeat': 'ValidPassword123!',
+        })
+        assert not form.is_valid()
+        assert str(TURNSTILE_MISCONFIGURED_MESSAGE) in form.non_field_errors()
 
     @patch('urllib.request.urlopen')
     def test_registration_form_valid_token(self, mock_urlopen):

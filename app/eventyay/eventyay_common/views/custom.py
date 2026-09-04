@@ -8,6 +8,7 @@ from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils.html import conditional_escape, format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from eventyay.base.models.page import Page
@@ -115,7 +116,7 @@ class SignupView(_SignupView):
                 expected_action='registration',
             )
             if not valid:
-                if error_code in ('missing-secret', 'missing-keys'):
+                if error_code == 'missing-secret':
                     form.add_error(
                         None,
                         forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured'),

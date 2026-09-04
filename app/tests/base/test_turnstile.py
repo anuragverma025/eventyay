@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.test import RequestFactory
 
 from eventyay.base.forms.auth import PasswordForgotForm, RegistrationForm
+from eventyay.base.models import Organizer
 from eventyay.base.services.turnstile import (
     TURNSTILE_ERROR_MESSAGE,
     TURNSTILE_MISCONFIGURED_MESSAGE,
@@ -23,6 +24,8 @@ from eventyay.common.templatetags.turnstile_tags import (
     turnstile_widget,
 )
 from eventyay.control.forms.global_settings import GlobalSettingsForm
+from eventyay.control.forms.organizer_forms.organizer_update_form import OrganizerUpdateForm
+from eventyay.presale.views.contact import ContactOrganizerView
 
 
 @pytest.fixture(autouse=True)
@@ -342,9 +345,6 @@ class TestTurnstileForms:
         assert str(TURNSTILE_ERROR_MESSAGE) in form.non_field_errors()
 
     def test_organizer_update_form_does_not_require_turnstile(self):
-        from eventyay.base.models import Organizer
-        from eventyay.control.forms.organizer_forms.organizer_update_form import OrganizerUpdateForm
-
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
         gs.set('turnstile_site_key', 'site-key')
@@ -444,10 +444,6 @@ class TestSignupViewIntegration:
 @pytest.mark.django_db
 class TestContactOrganizerTurnstile:
     def test_contact_form_rejects_missing_token_when_enabled(self):
-        from unittest.mock import MagicMock
-
-        from eventyay.presale.views.contact import ContactOrganizerView
-
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
         gs.set('turnstile_site_key', 'site-key')
@@ -471,10 +467,6 @@ class TestContactOrganizerTurnstile:
         assert json.loads(response.content)['success'] is False
 
     def test_contact_form_rate_limited_does_not_call_turnstile_verifier(self):
-        from unittest.mock import MagicMock, patch
-
-        from eventyay.presale.views.contact import ContactOrganizerView
-
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
         gs.set('turnstile_site_key', 'site-key')

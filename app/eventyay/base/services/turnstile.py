@@ -239,6 +239,6 @@ class TurnstileValidationMixin:
             expected_action=self.turnstile_action,
         )
         if not valid:
-            if error_code in ('missing-secret', 'missing-keys'):
+            if error_code == 'missing-secret':
                 raise forms.ValidationError(TURNSTILE_MISCONFIGURED_MESSAGE, code='turnstile_misconfigured')
             raise forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid')

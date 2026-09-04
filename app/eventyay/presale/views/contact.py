@@ -139,7 +139,7 @@ class ContactOrganizerView(EventViewMixin, View):
                 expected_action='contact',
             )
             if not valid:
-                if error_code in ('missing-secret', 'missing-keys'):
+                if error_code == 'missing-secret':
                     return JsonResponse(
                         {'success': False, 'error': str(TURNSTILE_MISCONFIGURED_MESSAGE)},
                         status=400,

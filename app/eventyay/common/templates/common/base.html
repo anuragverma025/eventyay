@@ -33,6 +33,7 @@
                     {% append_si event_social_image request.GET.si as event_social_image_url %}
                     <meta property="thumbnail" content="{{ event_social_image_url }}">
                     <meta property="og:image" content="{{ event_social_image_url }}">
+                    <meta name="twitter:image" content="{{ event_social_image_url }}">
                 {% endwith %}
             {% endif %}
         {% endblock meta_image %}
@@ -40,6 +41,8 @@
         <meta property="og:description" content="{% block social_description %}{% if request.event %}Schedule, talks and talk submissions for {{ request.event.name }}{% else %}Talks and talk submissions by {{site_name}} {% endif %}{% endblock social_description %}">
         <meta property="og:url" content="{% if request.event and request.event.display_settings.html_export_url %}{{ request.event.display_settings.html_export_url }}{{ request.path|slice:"1:" }}{% else %}{{ request.build_absolute_uri }}{% endif %}">
         <meta property="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="{% block twitter_title %}{% endblock twitter_title %} {% if request.event %}{{ request.event.name }}{% endif %}">
+        <meta name="twitter:description" content="{% block twitter_description %}{% if request.event %}Schedule, talks and talk submissions for {{ request.event.name }}{% else %}Talks and talk submissions by {{site_name}} {% endif %}{% endblock twitter_description %}">
 
         {% include "common/includes/favicon.html" %}
 

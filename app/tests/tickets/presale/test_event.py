@@ -2,7 +2,7 @@ import datetime
 import re
 from decimal import Decimal
 from json import loads
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from django.conf import settings
 from django.core import mail
@@ -50,6 +50,28 @@ class EventTestMixin:
 
 
 class EventMiddlewareTest(EventTestMixin, SoupTest):
+    def test_social_metadata_meta_tags(self):
+        # With no custom image configured, it defaults to the dynamic og-image endpoint
+        doc = self.get_doc('/%s/%s/' % (self.orga.slug, self.event.slug))
+        self.assertEqual(doc.find('meta', {'name': 'twitter:card'})['content'], 'summary_large_image')
+        og_image = doc.find('meta', {'property': 'og:image'})
+        twitter_image = doc.find('meta', {'name': 'twitter:image'})
+        self.assertIsNotNone(og_image)
+        self.assertIsNotNone(twitter_image)
+        self.assertIn('/og-image', og_image['content'])
+        self.assertIn('/og-image', twitter_image['content'])
+
+        # With banner / header image configured, it overrides the default og-image endpoint
+        with patch.object(Event, 'visible_header_image_url', new_callable=PropertyMock, return_value='https://example.com/banner.jpg'):
+            self.event.cache.delete('social_image_url')
+            doc = self.get_doc('/%s/%s/' % (self.orga.slug, self.event.slug))
+            og_image = doc.find('meta', {'property': 'og:image'})
+            twitter_image = doc.find('meta', {'name': 'twitter:image'})
+            self.assertIsNotNone(og_image)
+            self.assertIsNotNone(twitter_image)
+            self.assertEqual(og_image['content'], 'https://example.com/banner.jpg')
+            self.assertEqual(twitter_image['content'], 'https://example.com/banner.jpg')
+
     def test_event_header(self):
         doc = self.get_doc('/%s/%s/' % (self.orga.slug, self.event.slug))
         print('####', self.event.name)

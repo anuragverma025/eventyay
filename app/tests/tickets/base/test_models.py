@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from unittest.mock import PropertyMock, patch
 from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -3155,3 +3156,36 @@ def test_subevent_date_updates_order_date():
 
         assert order1.last_modified > o1lm
         assert order2.last_modified == o2lm
+
+
+@pytest.mark.django_db
+def test_event_social_image_fallback_priority():
+    organizer = Organizer.objects.create(name='Dummy Org', slug='dummy-org')
+    with scope(organizer=organizer):
+        event = Event.objects.create(
+            organizer=organizer,
+            name='Dummy Event',
+            slug='dummy-event',
+            date_from=now(),
+            date_to=now() + timedelta(days=1),
+        )
+        assert event.social_image is None
+        assert event.social_image_signature == ''
+
+        # Logo only
+        with patch.object(Event, 'visible_logo_url', new_callable=PropertyMock, return_value='/media/dummy_logo.png'):
+            assert event.social_image.endswith('/media/dummy_logo.png')
+            assert event.social_image_signature != ''
+
+            # Preview image takes precedence over logo
+            with patch.object(Event, 'visible_preview_image_url', new_callable=PropertyMock, return_value='/media/dummy_preview.png'):
+                assert event.social_image.endswith('/media/dummy_preview.png')
+
+                # Header image takes precedence over preview image and logo
+                with patch.object(Event, 'visible_header_image_url', new_callable=PropertyMock, return_value='/media/dummy_header.png'):
+                    assert event.social_image.endswith('/media/dummy_header.png')
+
+                    # og_image setting takes precedence over header image
+                    event.settings.set('og_image', 'https://example.com/custom_og.png')
+                    assert event.social_image == 'https://example.com/custom_og.png'
+

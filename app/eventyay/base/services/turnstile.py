@@ -171,14 +171,13 @@ def verify_turnstile_token(
         if not success:
             error_codes = res_data.get('error-codes', [])
             logger.warning(
-                'Cloudflare Turnstile token validation failed: error_codes=%s (ip=%s)',
+                'Cloudflare Turnstile token validation failed: error_codes=%s',
                 error_codes,
-                remote_ip or 'unknown',
             )
             return False, error_codes[0] if error_codes else 'invalid-input-response'
 
         token_action = res_data.get('action')
-        if expected_action and token_action and token_action != expected_action:
+        if expected_action and token_action != expected_action:
             logger.warning(
                 'Cloudflare Turnstile action mismatch: expected=%s, got=%s',
                 expected_action,

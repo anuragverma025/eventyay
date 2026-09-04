@@ -2,16 +2,12 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django import forms
 from django.core.cache import cache
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 
-from eventyay.base.forms.auth import LoginForm, PasswordForgotForm, RegistrationForm
-from eventyay.base.models import User
+from eventyay.base.forms.auth import PasswordForgotForm, RegistrationForm
 from eventyay.base.services.turnstile import (
     TURNSTILE_ERROR_MESSAGE,
-    TURNSTILE_FAILED_MESSAGE,
-    TURNSTILE_MISCONFIGURED_MESSAGE,
     get_failed_login_count,
     get_turnstile_settings,
     is_turnstile_enabled_for_action,
@@ -199,6 +195,27 @@ class TestTurnstileService:
         assert error == 'action-mismatch'
 
     @patch('urllib.request.urlopen')
+    def test_verify_turnstile_token_action_missing(self, mock_urlopen):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_secret_key', 'secret-key')
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            'success': True,
+        }).encode('utf-8')
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        valid, error = verify_turnstile_token(
+            'token',
+            remote_ip='192.0.2.1',
+            expected_action='registration',
+        )
+        assert valid is False
+        assert error == 'action-mismatch'
+
+    @patch('urllib.request.urlopen')
     def test_verify_turnstile_token_hostname_mismatch(self, mock_urlopen):
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
@@ -283,7 +300,7 @@ class TestTurnstileForms:
 
     def test_organizer_update_form_does_not_require_turnstile(self):
         from eventyay.base.models import Organizer
-        from eventyay.control.forms.organizer_forms.organizer_form import OrganizerForm
+        from eventyay.control.forms.organizer_forms.organizer_update_form import OrganizerUpdateForm
 
         gs = GlobalSettingsObject().settings
         gs.set('anti_abuse_provider', 'turnstile')
@@ -293,7 +310,7 @@ class TestTurnstileForms:
 
         org = Organizer.objects.create(name='Existing Org', slug='existing-org')
         # Existing organizer instance (has pk) should NOT fail on missing turnstile token
-        form = OrganizerForm(data={'name': 'Existing Org Renamed', 'slug': 'existing-org'}, instance=org)
+        form = OrganizerUpdateForm(data={'name': 'Existing Org Renamed', 'slug': 'existing-org'}, instance=org)
         assert form.is_valid()
 
 
@@ -379,4 +396,30 @@ class TestSignupViewIntegration:
         content = response.content.decode('utf-8')
         assert 'cf-turnstile' in content
         assert '1x00000000000000000000AA' in content
+
+
+@pytest.mark.django_db
+class TestContactOrganizerTurnstile:
+    def test_contact_form_rejects_missing_token_when_enabled(self):
+        from unittest.mock import MagicMock
+
+        from eventyay.presale.views.contact import ContactOrganizerView
+
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', 'site-key')
+        gs.set('turnstile_secret_key', 'secret-key')
+        gs.set('turnstile_on_contact', True)
+
+        rf = RequestFactory()
+        request = rf.post('/event/test-event/contact_organizer/', {'message': 'Hello organizer!'})
+        user = MagicMock()
+        user.is_authenticated = True
+        user.email = 'sender@example.com'
+        request.user = user
+
+        view = ContactOrganizerView()
+        response = view.post(request)
+        assert response.status_code == 400
+        assert json.loads(response.content)['success'] is False
 

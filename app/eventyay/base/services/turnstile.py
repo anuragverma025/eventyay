@@ -195,7 +195,7 @@ def verify_turnstile_token(
             return False, 'hostname-mismatch'
 
         return True, None
-    except Exception:
+    except (urllib.request.URLError, TimeoutError, json.JSONDecodeError, ValueError, OSError):
         logger.exception('Error during Cloudflare Turnstile token verification.')
         return False, 'network-error'
 

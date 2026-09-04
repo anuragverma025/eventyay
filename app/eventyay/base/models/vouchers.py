@@ -223,6 +223,20 @@ class Voucher(LoggedModel):
         verbose_name_plural = _('Vouchers')
         unique_together = (('event', 'code'),)
         ordering = ('code',)
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(budget__isnull=True) | models.Q(budget__gte=Decimal('0.00')),
+                name='voucher_budget_gte_zero',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(value__isnull=True) | models.Q(value__gte=Decimal('0.00')),
+                name='voucher_value_gte_zero',
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(price_mode='percent') | models.Q(value__isnull=True) | models.Q(value__lte=Decimal('100.00')),
+                name='voucher_percent_value_lte_100',
+            ),
+        ]
 
     def __str__(self):
         return self.code
@@ -662,6 +676,20 @@ class InvoiceVoucher(LoggedModel):
         verbose_name = _('Platform Fee Voucher')
         verbose_name_plural = _('Platform Fee Vouchers')
         ordering = ('-updated_at',)
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(budget__isnull=True) | models.Q(budget__gte=Decimal('0.00')),
+                name='invoice_voucher_budget_gte_zero',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(value__isnull=True) | models.Q(value__gte=Decimal('0.00')),
+                name='invoice_voucher_value_gte_zero',
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(price_mode='percent') | models.Q(value__isnull=True) | models.Q(value__lte=Decimal('100.00')),
+                name='invoice_voucher_percent_value_lte_100',
+            ),
+        ]
 
     def __str__(self):
         return self.code

@@ -50,6 +50,7 @@ class VoucherSerializer(I18nAwareModelSerializer):
             'allow_ignore_quota',
             'price_mode',
             'value',
+            'budget',
             'product',
             'variation',
             'quota',

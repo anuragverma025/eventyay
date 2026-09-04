@@ -39,6 +39,7 @@ TEST_VOUCHER_RES = {
     'allow_ignore_quota': False,
     'price_mode': 'set',
     'value': '12.00',
+    'budget': None,
     'item': 1,
     'variation': None,
     'quota': None,
@@ -1267,4 +1268,66 @@ def test_create_voucher_percentage_over_100(token_client, organizer, event, item
     )
     assert resp.status_code == 400
     assert 'value' in resp.data
+
+
+@pytest.mark.django_db
+def test_create_voucher_negative_budget(token_client, organizer, event, item):
+    resp = token_client.post(
+        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        {
+            'code': 'VOUCHERNEGBUDGET',
+            'max_usages': 1,
+            'price_mode': 'percent',
+            'value': '50.00',
+            'budget': '-100.00',
+            'item': item.pk,
+        },
+        format='json',
+    )
+    assert resp.status_code == 400
+    assert 'budget' in resp.data
+
+
+@pytest.mark.django_db
+def test_create_voucher_valid_budget(token_client, organizer, event, item):
+    resp = token_client.post(
+        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        {
+            'code': 'VOUCHERVALIDBUDGET',
+            'max_usages': 1,
+            'price_mode': 'percent',
+            'value': '50.00',
+            'budget': '100.00',
+            'item': item.pk,
+        },
+        format='json',
+    )
+    assert resp.status_code == 201
+    assert resp.data['budget'] == '100.00'
+
+
+@pytest.mark.django_db
+def test_update_voucher_negative_budget(token_client, organizer, event, voucher):
+    resp = token_client.patch(
+        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk),
+        {
+            'budget': '-50.00',
+        },
+        format='json',
+    )
+    assert resp.status_code == 400
+    assert 'budget' in resp.data
+
+
+@pytest.mark.django_db
+def test_update_voucher_valid_budget(token_client, organizer, event, voucher):
+    resp = token_client.patch(
+        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk),
+        {
+            'budget': '200.00',
+        },
+        format='json',
+    )
+    assert resp.status_code == 200
+    assert resp.data['budget'] == '200.00'
 

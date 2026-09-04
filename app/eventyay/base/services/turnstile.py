@@ -69,17 +69,18 @@ def get_failed_login_count(request: HttpRequest | None) -> int:
 
 
 def record_failed_login_attempt(request: HttpRequest | None) -> int:
-    """Increment the failed login attempts for this client IP."""
+    """Increment the failed login attempts for this client IP atomically."""
     key = _get_failed_login_cache_key(request)
     if not key:
         return 0
     try:
-        count = cache.get(key, 0)
-        if count is None:
-            count = 0
-        new_count = int(count) + 1
-        cache.set(key, new_count, timeout=FAILED_LOGIN_CACHE_TIMEOUT)
-        return new_count
+        if not cache.add(key, 1, timeout=FAILED_LOGIN_CACHE_TIMEOUT):
+            try:
+                return cache.incr(key)
+            except ValueError:
+                cache.set(key, 1, timeout=FAILED_LOGIN_CACHE_TIMEOUT)
+                return 1
+        return 1
     except Exception:
         logger.exception('Failed to record failed login attempt in cache.')
         return 0
@@ -125,9 +126,15 @@ def is_turnstile_enabled_for_action(action: str, request: HttpRequest | None = N
     return False
 
 
-def verify_turnstile_token(token: str | None, remote_ip: str | None = None) -> tuple[bool, str | None]:
+def verify_turnstile_token(
+    token: str | None,
+    remote_ip: str | None = None,
+    expected_action: str | None = None,
+    expected_hostname: str | None = None,
+) -> tuple[bool, str | None]:
     """
     Verify a Cloudflare Turnstile response token with Cloudflare API.
+    Optionally validates expected action and hostname returned in the verification payload.
     Returns (is_valid, error_code).
     """
     cfg = get_turnstile_settings()
@@ -170,6 +177,24 @@ def verify_turnstile_token(token: str | None, remote_ip: str | None = None) -> t
             )
             return False, error_codes[0] if error_codes else 'invalid-input-response'
 
+        token_action = res_data.get('action')
+        if expected_action and token_action and token_action != expected_action:
+            logger.warning(
+                'Cloudflare Turnstile action mismatch: expected=%s, got=%s',
+                expected_action,
+                token_action,
+            )
+            return False, 'action-mismatch'
+
+        token_hostname = res_data.get('hostname')
+        if expected_hostname and token_hostname and token_hostname != expected_hostname:
+            logger.warning(
+                'Cloudflare Turnstile hostname mismatch: expected=%s, got=%s',
+                expected_hostname,
+                token_hostname,
+            )
+            return False, 'hostname-mismatch'
+
         return True, None
     except Exception:
         logger.exception('Error during Cloudflare Turnstile token verification.')
@@ -200,6 +225,10 @@ class TurnstileValidationMixin:
             raise forms.ValidationError(TURNSTILE_ERROR_MESSAGE, code='turnstile_missing')
 
         client_ip = get_client_ip(req) if req else None
-        valid, error_code = verify_turnstile_token(token, remote_ip=client_ip)
+        valid, error_code = verify_turnstile_token(
+            token,
+            remote_ip=client_ip,
+            expected_action=self.turnstile_action,
+        )
         if not valid:
             raise forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid')

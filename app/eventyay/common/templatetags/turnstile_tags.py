@@ -1,4 +1,5 @@
 from django import template
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from eventyay.base.services.turnstile import (
@@ -27,14 +28,17 @@ def turnstile_widget(context, action='login', theme='auto', size='normal'):
     if not site_key:
         return ''
 
-    html = (
-        f'<div class="cf-turnstile form-group" '
-        f'data-sitekey="{site_key}" '
-        f'data-action="{action}" '
-        f'data-theme="{theme}" '
-        f'data-size="{size}"></div>'
+    return format_html(
+        '<div class="cf-turnstile form-group" '
+        'data-sitekey="{}" '
+        'data-action="{}" '
+        'data-theme="{}" '
+        'data-size="{}"></div>',
+        site_key,
+        action,
+        theme,
+        size,
     )
-    return mark_safe(html)
 
 
 @register.simple_tag(takes_context=True)

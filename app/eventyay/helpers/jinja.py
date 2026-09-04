@@ -54,6 +54,7 @@ def static_url(path: str = '') -> str:
 
 @pass_context
 def turnstile_widget(context: Context, action: str = 'registration', theme: str = 'auto', size: str = 'normal'):
+    from django.utils.html import format_html
     from markupsafe import Markup
 
     from eventyay.base.services.turnstile import get_turnstile_settings, is_turnstile_enabled_for_action
@@ -67,14 +68,19 @@ def turnstile_widget(context: Context, action: str = 'registration', theme: str 
     if not site_key:
         return Markup('')
 
-    html = (
-        f'<div class="cf-turnstile form-group" '
-        f'data-sitekey="{site_key}" '
-        f'data-action="{action}" '
-        f'data-theme="{theme}" '
-        f'data-size="{size}"></div>'
+    return Markup(
+        format_html(
+            '<div class="cf-turnstile form-group" '
+            'data-sitekey="{}" '
+            'data-action="{}" '
+            'data-theme="{}" '
+            'data-size="{}"></div>',
+            site_key,
+            action,
+            theme,
+            size,
+        )
     )
-    return Markup(html)
 
 
 @pass_context

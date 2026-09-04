@@ -176,6 +176,51 @@ class TestTurnstileService:
         assert error == 'invalid-input-response'
 
 
+    @patch('urllib.request.urlopen')
+    def test_verify_turnstile_token_action_mismatch(self, mock_urlopen):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_secret_key', 'secret-key')
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            'success': True,
+            'action': 'login',
+        }).encode('utf-8')
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        valid, error = verify_turnstile_token(
+            'token',
+            remote_ip='192.0.2.1',
+            expected_action='registration',
+        )
+        assert valid is False
+        assert error == 'action-mismatch'
+
+    @patch('urllib.request.urlopen')
+    def test_verify_turnstile_token_hostname_mismatch(self, mock_urlopen):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_secret_key', 'secret-key')
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            'success': True,
+            'hostname': 'evil.com',
+        }).encode('utf-8')
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        valid, error = verify_turnstile_token(
+            'token',
+            remote_ip='192.0.2.1',
+            expected_hostname='example.com',
+        )
+        assert valid is False
+        assert error == 'hostname-mismatch'
+
+
 @pytest.mark.django_db
 class TestTurnstileForms:
     def test_registration_form_when_disabled(self):
@@ -210,7 +255,10 @@ class TestTurnstileForms:
         gs.set('turnstile_on_registration', True)
 
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({'success': True}).encode('utf-8')
+        mock_resp.read.return_value = json.dumps({
+            'success': True,
+            'action': 'registration',
+        }).encode('utf-8')
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -232,6 +280,21 @@ class TestTurnstileForms:
         form = PasswordForgotForm(data={'email': 'user@example.com'})
         assert not form.is_valid()
         assert str(TURNSTILE_ERROR_MESSAGE) in form.non_field_errors()
+
+    def test_organizer_update_form_does_not_require_turnstile(self):
+        from eventyay.base.models import Organizer
+        from eventyay.control.forms.organizer_forms.organizer_form import OrganizerForm
+
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', 'site-key')
+        gs.set('turnstile_secret_key', 'secret-key')
+        gs.set('turnstile_on_organizer_create', True)
+
+        org = Organizer.objects.create(name='Existing Org', slug='existing-org')
+        # Existing organizer instance (has pk) should NOT fail on missing turnstile token
+        form = OrganizerForm(data={'name': 'Existing Org Renamed', 'slug': 'existing-org'}, instance=org)
+        assert form.is_valid()
 
 
 @pytest.mark.django_db
@@ -264,6 +327,21 @@ class TestTurnstileTemplateTags:
         script_html = turnstile_script(context, action='login')
         assert 'challenges.cloudflare.com/turnstile/v0/api.js' in script_html
         assert is_turnstile_active(context, 'login') is True
+
+    def test_tags_escape_malicious_site_key(self):
+        gs = GlobalSettingsObject().settings
+        gs.set('anti_abuse_provider', 'turnstile')
+        gs.set('turnstile_site_key', '"><script>alert(1)</script>')
+        gs.set('turnstile_secret_key', 'test-secret-key-123')
+        gs.set('turnstile_login_mode', 'always')
+
+        rf = RequestFactory()
+        request = rf.get('/login')
+        context = {'request': request}
+
+        widget_html = str(turnstile_widget(context, action='login'))
+        assert '<script>alert(1)</script>' not in widget_html
+        assert '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;' in widget_html
 
 
 @pytest.mark.django_db

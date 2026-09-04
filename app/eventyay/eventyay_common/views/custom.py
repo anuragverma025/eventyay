@@ -12,6 +12,13 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from eventyay.base.models.page import Page
+from eventyay.base.services.turnstile import (
+    TURNSTILE_ERROR_MESSAGE,
+    TURNSTILE_FAILED_MESSAGE,
+    is_turnstile_enabled_for_action,
+    verify_turnstile_token,
+)
+from eventyay.helpers.http import get_client_ip
 
 
 class SignupConfirmationForm(forms.Form):
@@ -80,6 +87,17 @@ class SignupView(_SignupView):
         return tuple(Page.objects.filter(confirmation_required=True))
 
     def form_valid(self, form):
+        if is_turnstile_enabled_for_action('registration', self.request):
+            token = self.request.POST.get('cf-turnstile-response')
+            if not token:
+                form.add_error(None, forms.ValidationError(TURNSTILE_ERROR_MESSAGE, code='turnstile_missing'))
+                return self.form_invalid(form)
+            client_ip = get_client_ip(self.request)
+            valid, error_code = verify_turnstile_token(token, remote_ip=client_ip)
+            if not valid:
+                form.add_error(None, forms.ValidationError(TURNSTILE_FAILED_MESSAGE, code='turnstile_invalid'))
+                return self.form_invalid(form)
+
         has_required_pages = bool(self.confirmation_pages)
         confirmation_form = SignupConfirmationForm(self.request.POST, has_required_pages=has_required_pages)
         if not confirmation_form.is_valid():

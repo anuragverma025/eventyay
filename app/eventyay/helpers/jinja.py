@@ -50,3 +50,46 @@ def static_url(path: str = '') -> str:
 
         return staticfiles_storage.url(path)
     return urljoin(settings.STATIC_URL, path)
+
+
+@pass_context
+def turnstile_widget(context: Context, action: str = 'registration', theme: str = 'auto', size: str = 'normal'):
+    from markupsafe import Markup
+
+    from eventyay.base.services.turnstile import get_turnstile_settings, is_turnstile_enabled_for_action
+
+    request = context.get('request')
+    if not is_turnstile_enabled_for_action(action, request):
+        return Markup('')
+
+    cfg = get_turnstile_settings()
+    site_key = cfg.get('site_key', '')
+    if not site_key:
+        return Markup('')
+
+    html = (
+        f'<div class="cf-turnstile form-group" '
+        f'data-sitekey="{site_key}" '
+        f'data-action="{action}" '
+        f'data-theme="{theme}" '
+        f'data-size="{size}"></div>'
+    )
+    return Markup(html)
+
+
+@pass_context
+def turnstile_script(context: Context, action: str = None):
+    from markupsafe import Markup
+
+    from eventyay.base.services.turnstile import get_turnstile_settings, is_turnstile_enabled_for_action
+
+    request = context.get('request')
+    if action and not is_turnstile_enabled_for_action(action, request):
+        return Markup('')
+
+    cfg = get_turnstile_settings()
+    if not cfg['enabled'] or not cfg['site_key']:
+        return Markup('')
+
+    return Markup('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>')
+

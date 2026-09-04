@@ -1009,10 +1009,14 @@ def test_event_cancel_form_negative_fees(env):
                 'keep_fee_fixed': '5.00',
                 'keep_fee_per_ticket': '2.00',
                 'keep_fee_percentage': '10.00',
+                'send_subject_0': 'Canceled: {event}',
+                'send_message_0': 'Hello,\n\nEvent {event} is canceled.',
+                'send_waitinglist_subject_0': 'Canceled: {event}',
+                'send_waitinglist_message_0': 'Hello,\n\nEvent {event} is canceled.',
             },
             event=env[0],
         )
-        assert form_valid.is_valid()
+        assert form_valid.is_valid(), form_valid.errors
 
 
 @pytest.mark.django_db

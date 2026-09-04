@@ -127,6 +127,7 @@ class CancelForm(ForceQuotaConfirmationForm):
         max_digits=10,
         decimal_places=2,
         min_value=Decimal('0.00'),
+        error_messages={'min_value': _('The cancellation fee cannot be negative.')},
         localize=True,
         label=_('Keep a cancellation fee of'),
         help_text=_(
@@ -155,8 +156,6 @@ class CancelForm(ForceQuotaConfirmationForm):
 
     def clean_cancellation_fee(self):
         val = self.cleaned_data['cancellation_fee'] or Decimal('0.00')
-        if val < Decimal('0.00'):
-            raise ValidationError(_('The cancellation fee cannot be negative.'))
         if val > self.instance.payment_refund_sum:
             raise ValidationError(_('The cancellation fee cannot be higher than the payment credit of this order.'))
         return val

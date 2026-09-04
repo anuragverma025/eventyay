@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django_scopes import scopes_disabled
@@ -7,6 +9,7 @@ from eventyay.base.forms.widgets import SplitDateTimePickerWidget
 from eventyay.base.models import Event, Organizer
 from eventyay.base.models.vouchers import InvoiceVoucher, Voucher
 from eventyay.control.forms import SplitDateTimeField
+
 
 WAIVER_TYPE_CHOICES = [
     ('none', _('No effect')),
@@ -153,7 +156,7 @@ class InvoiceVoucherForm(I18nModelForm):
         waiver_type = data.get('waiver_type', 'none')
         if waiver_type == 'percent_100':
             data['price_mode'] = 'percent'
-            data['value'] = 100
+            data['value'] = Decimal('100.00')
         elif waiver_type == 'percent':
             data['price_mode'] = 'percent'
             if not data.get('value'):

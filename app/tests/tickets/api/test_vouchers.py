@@ -1,15 +1,17 @@
 import copy
 import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 from django.utils import timezone
 from django.utils.timezone import now
 from django_scopes import scopes_disabled
-import datetime
-UTC = datetime.timezone.utc
 
 from eventyay.base.models import Event, SeatingPlan, Voucher
+
+
+UTC = datetime.UTC
 
 
 @pytest.fixture
@@ -40,12 +42,12 @@ TEST_VOUCHER_RES = {
     'price_mode': 'set',
     'value': '12.00',
     'budget': None,
-    'item': 1,
+    'product': 1,
     'variation': None,
     'quota': None,
     'tag': 'Foo',
     'comment': '',
-    'show_hidden_items': True,
+    'show_hidden_products': True,
     'subevent': None,
     'seat': None,
 }
@@ -54,7 +56,7 @@ TEST_VOUCHER_RES = {
 @pytest.mark.django_db
 def test_voucher_list(token_client, organizer, event, voucher, item, quota, subevent):
     res = dict(TEST_VOUCHER_RES)
-    res['item'] = item.pk
+    res['product'] = item.pk
     res['id'] = voucher.pk
     res['code'] = voucher.code
     q2 = copy.copy(quota)
@@ -66,65 +68,65 @@ def test_voucher_list(token_client, organizer, event, voucher, item, quota, sube
     with scopes_disabled():
         var2 = i2.variations.create(value='foo')
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/')
     assert resp.status_code == 200
     assert [res] == resp.data['results']
 
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?code={}'.format(organizer.slug, event.slug, voucher.code)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?code={voucher.code}'
     )
     assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?code=ABC'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?code=ABC')
     assert [] == resp.data['results']
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?max_usages=1'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?max_usages=1')
     assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?max_usages=2'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?max_usages=2')
     assert [] == resp.data['results']
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?redeemed=0'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?redeemed=0')
     assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?redeemed=1'.format(organizer.slug, event.slug))
-    assert [] == resp.data['results']
-
-    resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?block_quota=false'.format(organizer.slug, event.slug)
-    )
-    assert [res] == resp.data['results']
-    resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?block_quota=true'.format(organizer.slug, event.slug)
-    )
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?redeemed=1')
     assert [] == resp.data['results']
 
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?allow_ignore_quota=false'.format(organizer.slug, event.slug)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?block_quota=false'
     )
     assert [res] == resp.data['results']
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?allow_ignore_quota=true'.format(organizer.slug, event.slug)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?block_quota=true'
     )
     assert [] == resp.data['results']
 
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?price_mode=set'.format(organizer.slug, event.slug)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?allow_ignore_quota=false'
     )
     assert [res] == resp.data['results']
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?price_mode=percent'.format(organizer.slug, event.slug)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?allow_ignore_quota=true'
     )
     assert [] == resp.data['results']
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?value=12.00'.format(organizer.slug, event.slug))
-    assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?value=10.00'.format(organizer.slug, event.slug))
-    assert [] == resp.data['results']
-
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?item={}'.format(organizer.slug, event.slug, item.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?price_mode=set'
     )
     assert [res] == resp.data['results']
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?item={}'.format(organizer.slug, event.slug, i2.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?price_mode=percent'
+    )
+    assert [] == resp.data['results']
+
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?value=12.00')
+    assert [res] == resp.data['results']
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?value=10.00')
+    assert [] == resp.data['results']
+
+    resp = token_client.get(
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?product={item.pk}'
+    )
+    assert [res] == resp.data['results']
+    resp = token_client.get(
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?product={i2.pk}'
     )
     assert [] == resp.data['results']
 
@@ -134,52 +136,52 @@ def test_voucher_list(token_client, organizer, event, voucher, item, quota, sube
         voucher.save()
     res['variation'] = var.pk
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?variation={}'.format(organizer.slug, event.slug, var.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?variation={var.pk}'
     )
     assert [res] == resp.data['results']
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?variation={}'.format(organizer.slug, event.slug, var2.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?variation={var2.pk}'
     )
     assert [] == resp.data['results']
 
     voucher.variation = None
-    voucher.item = None
+    voucher.product = None
     voucher.quota = quota
     voucher.save()
     res['variation'] = None
-    res['item'] = None
+    res['product'] = None
     res['quota'] = quota.pk
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?quota={}'.format(organizer.slug, event.slug, quota.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?quota={quota.pk}'
     )
     assert [res] == resp.data['results']
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?quota={}'.format(organizer.slug, event.slug, q2.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?quota={q2.pk}'
     )
     assert [] == resp.data['results']
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?tag=Foo'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?tag=Foo')
     assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?tag=bar'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?tag=bar')
     assert [] == resp.data['results']
 
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?active=true'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?active=true')
     assert [res] == resp.data['results']
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?active=false'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?active=false')
     assert [] == resp.data['results']
 
     voucher.redeemed = 1
     voucher.save()
     res['redeemed'] = 1
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?active=false'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?active=false')
     assert [res] == resp.data['results']
 
     voucher.redeemed = 0
     voucher.valid_until = (timezone.now() - datetime.timedelta(days=1)).replace(microsecond=0)
     voucher.save()
-    res['valid_until'] = voucher.valid_until.isoformat().replace('+00:00', 'Z')
+    res['valid_until'] = voucher.valid_until.astimezone(ZoneInfo(event.settings.timezone)).isoformat()
     res['redeemed'] = 0
-    resp = token_client.get('/api/v1/organizers/{}/events/{}/vouchers/?active=false'.format(organizer.slug, event.slug))
+    resp = token_client.get(f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?active=false')
     assert [res] == resp.data['results']
 
     voucher.subevent = subevent
@@ -187,7 +189,7 @@ def test_voucher_list(token_client, organizer, event, voucher, item, quota, sube
     res['subevent'] = subevent.pk
 
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?subevent={}'.format(organizer.slug, event.slug, subevent.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?subevent={subevent.pk}'
     )
     assert [res] == resp.data['results']
     with scopes_disabled():
@@ -196,7 +198,7 @@ def test_voucher_list(token_client, organizer, event, voucher, item, quota, sube
             date_from=datetime.datetime(2017, 12, 27, 10, 0, 0, tzinfo=UTC),
         )
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/?subevent={}'.format(organizer.slug, event.slug, se2.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/?subevent={se2.pk}'
     )
     assert [] == resp.data['results']
 
@@ -204,12 +206,12 @@ def test_voucher_list(token_client, organizer, event, voucher, item, quota, sube
 @pytest.mark.django_db
 def test_voucher_detail(token_client, organizer, event, voucher, item):
     res = dict(TEST_VOUCHER_RES)
-    res['item'] = item.pk
+    res['product'] = item.pk
     res['id'] = voucher.pk
     res['code'] = voucher.code
 
     resp = token_client.get(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk)
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{voucher.pk}/'
     )
     assert resp.status_code == 200
     assert res == resp.data
@@ -217,7 +219,7 @@ def test_voucher_detail(token_client, organizer, event, voucher, item):
 
 def create_voucher(token_client, organizer, event, data, expected_failure=False):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/',
         data=data,
         format='json',
     )
@@ -253,10 +255,10 @@ def test_voucher_create_minimal(token_client, organizer, event, item):
         organizer,
         event,
         data={
-            'item': item.pk,
+            'product': item.pk,
         },
     )
-    assert v.item == item
+    assert v.product == item
 
 
 @pytest.mark.django_db
@@ -273,7 +275,7 @@ def test_voucher_create_full(token_client, organizer, event, item):
             'allow_ignore_quota': False,
             'price_mode': 'set',
             'value': '12.00',
-            'item': item.pk,
+            'product': item.pk,
             'variation': None,
             'quota': None,
             'tag': 'Foo',
@@ -290,7 +292,7 @@ def test_voucher_create_full(token_client, organizer, event, item):
     assert v.block_quota is False
     assert v.price_mode == 'set'
     assert v.value == Decimal('12.00')
-    assert v.item == item
+    assert v.product == item
     assert v.variation is None
     assert v.quota is None
     assert v.tag == 'Foo'
@@ -307,7 +309,7 @@ def test_voucher_create_for_addon_item(token_client, organizer, event, item):
         organizer,
         event,
         data={
-            'item': item.pk,
+            'product': item.pk,
         },
         expected_failure=True,
     )
@@ -320,10 +322,10 @@ def test_create_non_blocking_item_voucher(token_client, organizer, event, item):
         organizer,
         event,
         data={
-            'item': item.pk,
+            'product': item.pk,
         },
     )
-    assert v.item == item
+    assert v.product == item
     assert v.variation is None
     assert v.quota is None
 
@@ -336,9 +338,9 @@ def test_create_non_blocking_variation_voucher(token_client, organizer, event, i
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'variation': variation.pk},
+        data={'product': item.pk, 'variation': variation.pk},
     )
-    assert v.item == variation.item
+    assert v.product == variation.product
     assert v.variation == variation
     assert v.quota is None
 
@@ -348,12 +350,12 @@ def test_create_non_blocking_quota_voucher(token_client, organizer, event, quota
     v = create_voucher(token_client, organizer, event, data={'quota': quota.pk})
     assert not v.block_quota
     assert v.quota == quota
-    assert v.item is None
+    assert v.product is None
 
 
 @pytest.mark.django_db
 def test_create_blocking_item_voucher_quota_free(token_client, organizer, event, item, quota):
-    v = create_voucher(token_client, organizer, event, data={'item': item.pk, 'block_quota': True})
+    v = create_voucher(token_client, organizer, event, data={'product': item.pk, 'block_quota': True})
     assert v.block_quota
 
 
@@ -365,7 +367,7 @@ def test_create_blocking_item_voucher_quota_full(token_client, organizer, event,
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'block_quota': True},
+        data={'product': item.pk, 'block_quota': True},
         expected_failure=True,
     )
 
@@ -379,7 +381,7 @@ def test_create_blocking_item_voucher_quota_full_invalid(token_client, organizer
         organizer,
         event,
         data={
-            'item': item.pk,
+            'product': item.pk,
             'block_quota': True,
             'valid_until': (now() - datetime.timedelta(days=3)).isoformat(),
         },
@@ -397,7 +399,7 @@ def test_create_blocking_variation_voucher_quota_free(token_client, organizer, e
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'variation': variation.pk, 'block_quota': True},
+        data={'product': item.pk, 'variation': variation.pk, 'block_quota': True},
     )
     assert v.block_quota
 
@@ -408,7 +410,7 @@ def test_create_short_code(token_client, organizer, event, item):
         token_client,
         organizer,
         event,
-        data={'code': 'ABC', 'item': item.pk},
+        data={'code': 'ABC', 'product': item.pk},
         expected_failure=True,
     )
 
@@ -424,7 +426,7 @@ def test_create_blocking_variation_voucher_quota_full(token_client, organizer, e
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'variation': variation.pk, 'block_quota': True},
+        data={'product': item.pk, 'variation': variation.pk, 'block_quota': True},
         expected_failure=True,
     )
 
@@ -475,12 +477,12 @@ def test_subevent_optional(token_client, organizer, event, item, subevent):
         organizer,
         event,
         data={
-            'item': item.pk,
+            'product': item.pk,
         },
     )
     assert v.subevent is None
     assert v.block_quota is False
-    assert v.item == item
+    assert v.product == item
 
 
 @pytest.mark.django_db
@@ -489,7 +491,7 @@ def test_subevent_required_for_blocking(token_client, organizer, event, item, su
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'block_quota': True},
+        data={'product': item.pk, 'block_quota': True},
         expected_failure=True,
     )
 
@@ -501,13 +503,13 @@ def test_subevent_blocking_quota_free(token_client, organizer, event, item, quot
         quota.subevent = subevent
         quota.save()
         q2 = event.quotas.create(event=event, name='Tickets', size=0, subevent=se2)
-        q2.items.add(item)
+        q2.products.add(item)
 
     v = create_voucher(
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'block_quota': True, 'subevent': subevent.pk},
+        data={'product': item.pk, 'block_quota': True, 'subevent': subevent.pk},
     )
     assert v.block_quota
     assert v.subevent == subevent
@@ -521,20 +523,20 @@ def test_subevent_blocking_quota_full(token_client, organizer, event, item, quot
         quota.size = 0
         quota.save()
         q2 = event.quotas.create(event=event, name='Tickets', size=5, subevent=se2)
-        q2.items.add(item)
+        q2.products.add(item)
 
     create_voucher(
         token_client,
         organizer,
         event,
-        data={'item': item.pk, 'block_quota': True, 'subevent': subevent.pk},
+        data={'product': item.pk, 'block_quota': True, 'subevent': subevent.pk},
         expected_failure=True,
     )
 
 
 def change_voucher(token_client, organizer, event, voucher, data, expected_failure=False):
     resp = token_client.patch(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{voucher.pk}/',
         data=data,
         format='json',
     )
@@ -555,33 +557,33 @@ def test_change_to_item_of_other_event(token_client, organizer, event, item):
             date_from=datetime.datetime(2017, 12, 27, 10, 0, 0, tzinfo=UTC),
             plugins='eventyay.plugins.banktransfer,eventyay.plugins.ticketoutputpdf',
         )
-        ticket2 = e2.items.create(name='Late-bird ticket', default_price=23)
-        v = event.vouchers.create(item=item)
+        ticket2 = e2.products.create(name='Late-bird ticket', default_price=23)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
         event,
         v,
-        data={'item': ticket2.pk},
+        data={'product': ticket2.pk},
         expected_failure=True,
     )
     v.refresh_from_db()
-    assert v.item == item
+    assert v.product == item
 
 
 @pytest.mark.django_db
 def test_change_non_blocking_voucher(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
-    change_voucher(token_client, organizer, event, v, data={'quota': quota.pk, 'item': None})
-    assert v.item is None
+        v = event.vouchers.create(product=item)
+    change_voucher(token_client, organizer, event, v, data={'quota': quota.pk, 'product': None})
+    assert v.product is None
     assert v.quota == quota
 
 
 @pytest.mark.django_db
 def test_change_voucher_reduce_max_usages(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        v = event.vouchers.create(item=item, max_usages=5, redeemed=3)
+        v = event.vouchers.create(product=item, max_usages=5, redeemed=3)
     change_voucher(token_client, organizer, event, v, data={'max_usages': 2}, expected_failure=True)
     assert v.max_usages == 5
 
@@ -591,9 +593,9 @@ def test_change_blocking_voucher_unchanged_quota_full(token_client, organizer, e
     quota.size = 0
     quota.save()
     with scopes_disabled():
-        v = event.vouchers.create(item=item, block_quota=True)
+        v = event.vouchers.create(product=item, block_quota=True)
     change_voucher(token_client, organizer, event, v, data={'comment': 'Foo'})
-    assert v.item == item
+    assert v.product == item
     assert v.block_quota
     assert v.comment == 'Foo'
 
@@ -603,7 +605,7 @@ def test_change_voucher_to_blocking_quota_full(token_client, organizer, event, i
     quota.size = 0
     quota.save()
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -617,7 +619,7 @@ def test_change_voucher_to_blocking_quota_full(token_client, organizer, event, i
 @pytest.mark.django_db
 def test_change_voucher_to_blocking_quota_free(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -633,7 +635,7 @@ def test_change_voucher_validity_to_valid_quota_full(token_client, organizer, ev
     quota.size = 0
     quota.save()
     with scopes_disabled():
-        v = event.vouchers.create(item=item, valid_until=now() - datetime.timedelta(days=3), block_quota=True)
+        v = event.vouchers.create(product=item, valid_until=now() - datetime.timedelta(days=3), block_quota=True)
     change_voucher(
         token_client,
         organizer,
@@ -648,7 +650,7 @@ def test_change_voucher_validity_to_valid_quota_full(token_client, organizer, ev
 @pytest.mark.django_db
 def test_change_voucher_validity_to_valid_quota_free(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        v = event.vouchers.create(item=item, valid_until=now() - datetime.timedelta(days=3), block_quota=True)
+        v = event.vouchers.create(product=item, valid_until=now() - datetime.timedelta(days=3), block_quota=True)
     change_voucher(
         token_client,
         organizer,
@@ -662,32 +664,32 @@ def test_change_voucher_validity_to_valid_quota_free(token_client, organizer, ev
 @pytest.mark.django_db
 def test_change_item_of_blocking_voucher_quota_free(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        ticket2 = event.items.create(name='Late-bird ticket', default_price=23)
-        quota.items.add(ticket2)
-        v = event.vouchers.create(item=item, block_quota=True)
+        ticket2 = event.products.create(name='Late-bird ticket', default_price=23)
+        quota.products.add(ticket2)
+        v = event.vouchers.create(product=item, block_quota=True)
     change_voucher(
         token_client,
         organizer,
         event,
         v,
-        data={'item': ticket2.pk},
+        data={'product': ticket2.pk},
     )
-    assert v.item == ticket2
+    assert v.product == ticket2
 
 
 @pytest.mark.django_db
 def test_change_item_of_blocking_voucher_quota_full(token_client, organizer, event, item, quota):
     with scopes_disabled():
-        ticket2 = event.items.create(name='Late-bird ticket', default_price=23)
+        ticket2 = event.products.create(name='Late-bird ticket', default_price=23)
         quota2 = event.quotas.create(name='Late', size=0)
-        quota2.items.add(ticket2)
-        v = event.vouchers.create(item=item, block_quota=True)
+        quota2.products.add(ticket2)
+        v = event.vouchers.create(product=item, block_quota=True)
     change_voucher(
         token_client,
         organizer,
         event,
         v,
-        data={'item': ticket2.pk},
+        data={'product': ticket2.pk},
         expected_failure=True,
     )
 
@@ -695,14 +697,14 @@ def test_change_item_of_blocking_voucher_quota_full(token_client, organizer, eve
 @pytest.mark.django_db
 def test_change_variation_of_blocking_voucher_quota_free(token_client, organizer, event):
     with scopes_disabled():
-        shirt = event.items.create(name='Shirt', default_price=23)
+        shirt = event.products.create(name='Shirt', default_price=23)
         vs = shirt.variations.create(value='S')
         vm = shirt.variations.create(value='M')
         qs = event.quotas.create(name='S', size=2)
         qs.variations.add(vs)
         qm = event.quotas.create(name='M', size=2)
         qm.variations.add(vm)
-        v = event.vouchers.create(item=shirt, variation=vs, block_quota=True)
+        v = event.vouchers.create(product=shirt, variation=vs, block_quota=True)
     change_voucher(
         token_client,
         organizer,
@@ -716,13 +718,13 @@ def test_change_variation_of_blocking_voucher_quota_free(token_client, organizer
 @pytest.mark.django_db
 def test_change_variation_of_blocking_voucher_without_quota_change(token_client, organizer, event):
     with scopes_disabled():
-        shirt = event.items.create(name='Shirt', default_price=23)
+        shirt = event.products.create(name='Shirt', default_price=23)
         vs = shirt.variations.create(value='S')
         vm = shirt.variations.create(value='M')
         q = event.quotas.create(name='S', size=0)
         q.variations.add(vs)
         q.variations.add(vm)
-        v = event.vouchers.create(item=shirt, variation=vs, block_quota=True)
+        v = event.vouchers.create(product=shirt, variation=vs, block_quota=True)
     change_voucher(token_client, organizer, event, v, data={'variation': vm.pk})
     assert v.variation == vm
 
@@ -730,14 +732,14 @@ def test_change_variation_of_blocking_voucher_without_quota_change(token_client,
 @pytest.mark.django_db
 def test_change_variation_of_blocking_voucher_quota_full(token_client, organizer, event):
     with scopes_disabled():
-        shirt = event.items.create(name='Shirt', default_price=23)
+        shirt = event.products.create(name='Shirt', default_price=23)
         vs = shirt.variations.create(value='S')
         vm = shirt.variations.create(value='M')
         qs = event.quotas.create(name='S', size=2)
         qs.variations.add(vs)
         qm = event.quotas.create(name='M', size=0)
         qm.variations.add(vm)
-        v = event.vouchers.create(item=shirt, variation=vs, block_quota=True)
+        v = event.vouchers.create(product=shirt, variation=vs, block_quota=True)
     change_voucher(
         token_client,
         organizer,
@@ -778,17 +780,17 @@ def test_change_item_of_blocking_voucher_without_quota_change(token_client, orga
     with scopes_disabled():
         quota.size = 0
         quota.save()
-        ticket2 = event.items.create(name='Standard Ticket', default_price=23)
-        quota.items.add(ticket2)
-        v = event.vouchers.create(item=item, block_quota=True)
+        ticket2 = event.products.create(name='Standard Ticket', default_price=23)
+        quota.products.add(ticket2)
+        v = event.vouchers.create(product=item, block_quota=True)
     change_voucher(
         token_client,
         organizer,
         event,
         v,
-        data={'item': ticket2.pk},
+        data={'product': ticket2.pk},
     )
-    assert v.item == ticket2
+    assert v.product == ticket2
 
 
 @pytest.mark.django_db
@@ -813,9 +815,9 @@ def test_change_subevent_blocking_quota_free(token_client, organizer, event, ite
         quota.save()
         se2 = event.subevents.create(name='Bar', date_from=now())
         q2 = event.quotas.create(event=event, name='Tickets', size=5, subevent=se2)
-        q2.items.add(item)
+        q2.products.add(item)
 
-        v = event.vouchers.create(item=item, block_quota=True, subevent=subevent)
+        v = event.vouchers.create(product=item, block_quota=True, subevent=subevent)
     change_voucher(
         token_client,
         organizer,
@@ -833,9 +835,9 @@ def test_change_subevent_blocking_quota_full(token_client, organizer, event, ite
         quota.save()
         se2 = event.subevents.create(name='Bar', date_from=now())
         q2 = event.quotas.create(event=event, name='Tickets', size=0, subevent=se2)
-        q2.items.add(item)
+        q2.products.add(item)
 
-        v = event.vouchers.create(item=item, block_quota=True, subevent=subevent)
+        v = event.vouchers.create(product=item, block_quota=True, subevent=subevent)
     change_voucher(
         token_client,
         organizer,
@@ -851,7 +853,7 @@ def test_delete_voucher(token_client, organizer, event, quota):
     with scopes_disabled():
         v = event.vouchers.create(quota=quota)
     resp = token_client.delete(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, v.pk),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{v.pk}/',
     )
     assert resp.status_code == 204
     with scopes_disabled():
@@ -863,7 +865,7 @@ def test_delete_voucher_redeemed(token_client, organizer, event, quota):
     with scopes_disabled():
         v = event.vouchers.create(quota=quota, redeemed=1)
     resp = token_client.delete(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, v.pk),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{v.pk}/',
     )
     assert resp.status_code == 403
     with scopes_disabled():
@@ -873,7 +875,7 @@ def test_delete_voucher_redeemed(token_client, organizer, event, quota):
 @pytest.mark.django_db
 def test_redeemed_is_not_writable(token_client, organizer, event, item):
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -889,7 +891,7 @@ def test_redeemed_is_not_writable(token_client, organizer, event, item):
 @pytest.mark.django_db
 def test_create_multiple_vouchers(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/batch_create/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/batch_create/',
         data=[
             {
                 'code': 'ABCDEFGHI',
@@ -899,7 +901,7 @@ def test_create_multiple_vouchers(token_client, organizer, event, item):
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -914,7 +916,7 @@ def test_create_multiple_vouchers(token_client, organizer, event, item):
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -938,7 +940,7 @@ def test_create_multiple_vouchers(token_client, organizer, event, item):
 @pytest.mark.django_db
 def test_create_multiple_vouchers_one_invalid(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/batch_create/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/batch_create/',
         data=[
             {
                 'code': 'ABCDEFGHI',
@@ -948,7 +950,7 @@ def test_create_multiple_vouchers_one_invalid(token_client, organizer, event, it
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -963,7 +965,7 @@ def test_create_multiple_vouchers_one_invalid(token_client, organizer, event, it
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -982,7 +984,7 @@ def test_create_multiple_vouchers_one_invalid(token_client, organizer, event, it
 @pytest.mark.django_db
 def test_create_multiple_vouchers_duplicate_code(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/batch_create/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/batch_create/',
         data=[
             {
                 'code': 'ABCDEFGHI',
@@ -992,7 +994,7 @@ def test_create_multiple_vouchers_duplicate_code(token_client, organizer, event,
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -1007,7 +1009,7 @@ def test_create_multiple_vouchers_duplicate_code(token_client, organizer, event,
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -1039,7 +1041,7 @@ def seat1(item, event):
 @pytest.mark.django_db
 def test_create_multiple_vouchers_duplicate_seat(token_client, organizer, event, item, seat1, seatingplan):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/batch_create/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/batch_create/',
         data=[
             {
                 'code': 'ABCDEFGHI',
@@ -1049,7 +1051,7 @@ def test_create_multiple_vouchers_duplicate_seat(token_client, organizer, event,
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -1065,7 +1067,7 @@ def test_create_multiple_vouchers_duplicate_seat(token_client, organizer, event,
                 'allow_ignore_quota': False,
                 'price_mode': 'set',
                 'value': '12.00',
-                'item': item.pk,
+                'product': item.pk,
                 'variation': None,
                 'quota': None,
                 'tag': 'Foo',
@@ -1085,7 +1087,7 @@ def test_create_multiple_vouchers_duplicate_seat(token_client, organizer, event,
 @pytest.mark.django_db
 def test_set_seat_ok(token_client, organizer, event, seatingplan, seat1, item):
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -1101,7 +1103,7 @@ def test_set_seat_ok(token_client, organizer, event, seatingplan, seat1, item):
 @pytest.mark.django_db
 def test_save_set_seat(token_client, organizer, event, seatingplan, seat1, item):
     with scopes_disabled():
-        v = event.vouchers.create(item=item, seat=seat1)
+        v = event.vouchers.create(product=item, seat=seat1)
     change_voucher(
         token_client,
         organizer,
@@ -1117,7 +1119,7 @@ def test_save_set_seat(token_client, organizer, event, seatingplan, seat1, item)
 @pytest.mark.django_db
 def test_set_seat_unknown(token_client, organizer, event, seatingplan, seat1, item):
     with scopes_disabled():
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -1138,23 +1140,23 @@ def test_seat_seat_productmissing(token_client, organizer, event, seatingplan, s
 @pytest.mark.django_db
 def test_seat_seat_productwrong(token_client, organizer, event, seatingplan, seat1, item, quota):
     with scopes_disabled():
-        i2 = event.items.create(name='Budget Ticket', default_price=23)
-        v = event.vouchers.create(item=i2)
+        i2 = event.products.create(name='Budget Ticket', default_price=23)
+        v = event.vouchers.create(product=i2)
     change_voucher(token_client, organizer, event, v, data={'seat': 'A1'}, expected_failure=True)
 
 
 @pytest.mark.django_db
 def test_seat_seat_usages(token_client, organizer, event, seatingplan, seat1, item, quota):
     with scopes_disabled():
-        v = event.vouchers.create(item=item, max_usages=2)
+        v = event.vouchers.create(product=item, max_usages=2)
     change_voucher(token_client, organizer, event, v, data={'seat': 'A1'}, expected_failure=True)
 
 
 @pytest.mark.django_db
 def test_seat_seat_duplicate(token_client, organizer, event, seatingplan, seat1, item, quota):
     with scopes_disabled():
-        event.vouchers.create(item=item, seat=seat1)
-        v = event.vouchers.create(item=item)
+        event.vouchers.create(product=item, seat=seat1)
+        v = event.vouchers.create(product=item)
     change_voucher(token_client, organizer, event, v, data={'seat': 'A1'}, expected_failure=True)
 
 
@@ -1170,7 +1172,7 @@ def test_set_seat_subevent(token_client, organizer, event, seatingplan, seat1, i
         se2 = event.subevents.create(name='Baz', date_from=datetime.datetime(2017, 12, 27, 10, 0, 0, tzinfo=UTC))
         seat1 = event.seats.create(seat_number='A1', product=item, seat_guid='A1', subevent=se1)
         event.seats.create(seat_number='A1', product=item, seat_guid='A1', subevent=se2)
-        v = event.vouchers.create(item=item)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -1196,8 +1198,8 @@ def test_set_seat_subevent_required(token_client, organizer, event, seatingplan,
         se2 = event.subevents.create(name='Baz', date_from=datetime.datetime(2017, 12, 27, 10, 0, 0, tzinfo=UTC))
         seat1 = event.seats.create(seat_number='A1', product=item, seat_guid='A1', subevent=se1)
         event.seats.create(seat_number='A1', product=item, seat_guid='A1', subevent=se2)
-        event.vouchers.create(item=item, seat=seat1)
-        v = event.vouchers.create(item=item)
+        event.vouchers.create(product=item, seat=seat1)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -1222,8 +1224,8 @@ def test_set_seat_subevent_invalid(token_client, organizer, event, seatingplan, 
         se2 = event.subevents.create(name='Baz', date_from=datetime.datetime(2017, 12, 27, 10, 0, 0, tzinfo=UTC))
         seat1 = event.seats.create(seat_number='A1', product=item, seat_guid='A1', subevent=se1)
         event.seats.create(seat_number='B1', product=item, seat_guid='B1', subevent=se2)
-        event.vouchers.create(item=item, seat=seat1, subevent=se2)
-        v = event.vouchers.create(item=item)
+        event.vouchers.create(product=item, seat=seat1, subevent=se2)
+        v = event.vouchers.create(product=item)
     change_voucher(
         token_client,
         organizer,
@@ -1245,7 +1247,7 @@ def test_create_voucher_negative_value(token_client, organizer, event, item):
             'max_usages': 1,
             'price_mode': 'set',
             'value': '-10.00',
-            'item': item.pk,
+            'product': item.pk,
         },
         format='json',
     )
@@ -1262,7 +1264,7 @@ def test_create_voucher_percentage_over_100(token_client, organizer, event, item
             'max_usages': 1,
             'price_mode': 'percent',
             'value': '150.00',
-            'item': item.pk,
+            'product': item.pk,
         },
         format='json',
     )
@@ -1280,7 +1282,7 @@ def test_create_voucher_negative_budget(token_client, organizer, event, item):
             'price_mode': 'percent',
             'value': '50.00',
             'budget': '-100.00',
-            'item': item.pk,
+            'product': item.pk,
         },
         format='json',
     )
@@ -1298,7 +1300,7 @@ def test_create_voucher_valid_budget(token_client, organizer, event, item):
             'price_mode': 'percent',
             'value': '50.00',
             'budget': '100.00',
-            'item': item.pk,
+            'product': item.pk,
         },
         format='json',
     )

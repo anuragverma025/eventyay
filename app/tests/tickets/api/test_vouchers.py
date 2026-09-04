@@ -14,18 +14,18 @@ from eventyay.base.models import Event, SeatingPlan, Voucher
 
 @pytest.fixture
 def item(event):
-    return event.items.create(name='Budget Ticket', default_price=23)
+    return event.products.create(name='Budget Ticket', default_price=23)
 
 
 @pytest.fixture
 def voucher(event, item):
-    return event.vouchers.create(item=item, price_mode='set', value=12, tag='Foo')
+    return event.vouchers.create(product=item, price_mode='set', value=12, tag='Foo')
 
 
 @pytest.fixture
 def quota(event, item):
     q = event.quotas.create(name='Budget Quota', size=200)
-    q.items.add(item)
+    q.products.add(item)
     return q
 
 
@@ -1239,7 +1239,7 @@ def test_set_seat_subevent_invalid(token_client, organizer, event, seatingplan, 
 @pytest.mark.django_db
 def test_create_voucher_negative_value(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/',
         {
             'code': 'VOUCHERNEG',
             'max_usages': 1,
@@ -1256,7 +1256,7 @@ def test_create_voucher_negative_value(token_client, organizer, event, item):
 @pytest.mark.django_db
 def test_create_voucher_percentage_over_100(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/',
         {
             'code': 'VOUCHER150',
             'max_usages': 1,
@@ -1273,7 +1273,7 @@ def test_create_voucher_percentage_over_100(token_client, organizer, event, item
 @pytest.mark.django_db
 def test_create_voucher_negative_budget(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/',
         {
             'code': 'VOUCHERNEGBUDGET',
             'max_usages': 1,
@@ -1291,7 +1291,7 @@ def test_create_voucher_negative_budget(token_client, organizer, event, item):
 @pytest.mark.django_db
 def test_create_voucher_valid_budget(token_client, organizer, event, item):
     resp = token_client.post(
-        '/api/v1/organizers/{}/events/{}/vouchers/'.format(organizer.slug, event.slug),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/',
         {
             'code': 'VOUCHERVALIDBUDGET',
             'max_usages': 1,
@@ -1309,7 +1309,7 @@ def test_create_voucher_valid_budget(token_client, organizer, event, item):
 @pytest.mark.django_db
 def test_update_voucher_negative_budget(token_client, organizer, event, voucher):
     resp = token_client.patch(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{voucher.pk}/',
         {
             'budget': '-50.00',
         },
@@ -1322,7 +1322,7 @@ def test_update_voucher_negative_budget(token_client, organizer, event, voucher)
 @pytest.mark.django_db
 def test_update_voucher_valid_budget(token_client, organizer, event, voucher):
     resp = token_client.patch(
-        '/api/v1/organizers/{}/events/{}/vouchers/{}/'.format(organizer.slug, event.slug, voucher.pk),
+        f'/api/v1/organizers/{organizer.slug}/events/{event.slug}/vouchers/{voucher.pk}/',
         {
             'budget': '200.00',
         },
@@ -1330,4 +1330,5 @@ def test_update_voucher_valid_budget(token_client, organizer, event, voucher):
     )
     assert resp.status_code == 200
     assert resp.data['budget'] == '200.00'
+
 

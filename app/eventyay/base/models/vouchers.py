@@ -233,7 +233,11 @@ class Voucher(LoggedModel):
                 name='voucher_value_gte_zero',
             ),
             models.CheckConstraint(
-                condition=~models.Q(price_mode='percent') | models.Q(value__isnull=True) | models.Q(value__lte=Decimal('100.00')),
+                condition=(
+                    ~models.Q(price_mode='percent')
+                    | models.Q(value__isnull=True)
+                    | models.Q(value__lte=Decimal('100.00'))
+                ),
                 name='voucher_percent_value_lte_100',
             ),
         ]
@@ -686,7 +690,11 @@ class InvoiceVoucher(LoggedModel):
                 name='invoice_voucher_value_gte_zero',
             ),
             models.CheckConstraint(
-                condition=~models.Q(price_mode='percent') | models.Q(value__isnull=True) | models.Q(value__lte=Decimal('100.00')),
+                condition=(
+                    ~models.Q(price_mode='percent')
+                    | models.Q(value__isnull=True)
+                    | models.Q(value__lte=Decimal('100.00'))
+                ),
                 name='invoice_voucher_percent_value_lte_100',
             ),
         ]

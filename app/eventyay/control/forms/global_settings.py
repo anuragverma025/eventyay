@@ -656,6 +656,11 @@ class GlobalSettingsForm(SettingsForm):
 
 
 
+        if 'turnstile_site_key' in self.fields:
+            self.fields['turnstile_site_key']._required = True
+        if 'turnstile_secret_key' in self.fields:
+            self.fields['turnstile_secret_key']._required = True
+
     def clean_voxbento_base_url(self):
         url = (self.cleaned_data.get('voxbento_base_url') or '').strip()
         if url:

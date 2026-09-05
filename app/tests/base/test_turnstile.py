@@ -406,6 +406,11 @@ class TestTurnstileTemplateTags:
 
 @pytest.mark.django_db
 class TestGlobalSettingsForm:
+    def test_global_settings_turnstile_keys_marked_required(self):
+        form = GlobalSettingsForm()
+        assert getattr(form.fields['turnstile_site_key'], '_required', False) is True
+        assert getattr(form.fields['turnstile_secret_key'], '_required', False) is True
+
     def test_global_settings_validation_turnstile_requires_keys(self):
         form = GlobalSettingsForm(data={
             'anti_abuse_provider': 'turnstile',

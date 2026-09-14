@@ -84,3 +84,47 @@ class TestFetchPreviewData:
             assert result['title'] == 'Test Event'
             assert result['description'] == 'An awesome event'
             assert 'image' not in result
+
+    def test_fetch_preview_data_html_with_og_site_name(self):
+        html_content = b"""
+        <html>
+        <head>
+            <meta property="og:title" content="Test Event">
+            <meta property="og:site_name" content="Eventyay Platform">
+        </head>
+        <body></body>
+        </html>
+        """
+        mock_page_response = MagicMock(spec=requests.Response)
+        mock_page_response.status_code = 200
+        mock_page_response.headers = {'Content-Type': 'text/html'}
+        mock_page_response.content = html_content
+
+        with patch('eventyay.storage.external.retrieve_url', return_value=mock_page_response):
+            result = fetch_preview_data('https://example.com/page', event=None)
+
+            assert result is not None
+            assert result['title'] == 'Test Event'
+            assert result['site_name'] == 'Eventyay Platform'
+
+    def test_fetch_preview_data_html_with_og_site_name_hyphen_fallback(self):
+        html_content = b"""
+        <html>
+        <head>
+            <meta property="og:title" content="Test Event">
+            <meta property="og:site-name" content="Eventyay Hyphen Platform">
+        </head>
+        <body></body>
+        </html>
+        """
+        mock_page_response = MagicMock(spec=requests.Response)
+        mock_page_response.status_code = 200
+        mock_page_response.headers = {'Content-Type': 'text/html'}
+        mock_page_response.content = html_content
+
+        with patch('eventyay.storage.external.retrieve_url', return_value=mock_page_response):
+            result = fetch_preview_data('https://example.com/page', event=None)
+
+            assert result is not None
+            assert result['title'] == 'Test Event'
+            assert result['site_name'] == 'Eventyay Hyphen Platform'

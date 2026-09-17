@@ -71,7 +71,7 @@ def retrieve_url(url: str) -> requests.Response | None:
         if response.status_code == 200:
             return response
     except requests.RequestException as e:
-        logger.warning('Failed to fetch external URL %s: %s', url, e)
+        logger.warning('Failed to fetch external URL: %s', type(e).__name__)
     return None
 
 

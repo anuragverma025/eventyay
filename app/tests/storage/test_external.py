@@ -30,9 +30,11 @@ class TestRetrieveUrl:
             assert response is None
 
     def test_retrieve_url_timeout_exception(self):
-        with patch('requests.get', side_effect=requests.exceptions.Timeout('Read timeout')):
+        with patch('requests.get', side_effect=requests.exceptions.Timeout('Read timeout')), \
+             patch('eventyay.storage.external.logger.warning') as mock_log:
             response = retrieve_url('https://example.com/timeout')
             assert response is None
+            mock_log.assert_called_once_with('Failed to fetch external URL: %s', 'Timeout')
 
     def test_retrieve_url_connection_error(self):
         with patch('requests.get', side_effect=requests.exceptions.ConnectionError('DNS failure')):

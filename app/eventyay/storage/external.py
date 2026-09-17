@@ -63,6 +63,10 @@ def store_image(response, event):  # TODO deduplicate
 
 
 def retrieve_url(url: str) -> requests.Response | None:
+    """Safely retrieves an external URL with the configured User-Agent and timeout.
+
+    Catches network exceptions (requests.RequestException) and returns None on failure.
+    """
     headers = {
         'User-Agent': f'{settings.INSTANCE_NAME}/1.0 ({settings.SITE_URL})',
     }
@@ -120,7 +124,7 @@ def fetch_preview_data(url, event):
         result['description'] = find_data(html, 'og:description') or find_data(html, 'description')
         result['format'] = find_data(html, 'twitter:card')
         result['video'] = find_data(html, 'og:video')
-        result['site_name'] = find_data(html, 'og:site_name') or find_data(html, 'og:site-name')
+        result['site_name'] = find_data(html, 'og:site-name')
 
         result = {key: value for key, value in result.items() if value}
 
